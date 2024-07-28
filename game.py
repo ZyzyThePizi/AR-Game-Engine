@@ -1,109 +1,228 @@
+# Calculations and Deep Learning library
 import tensorflow as tf
 import tensorflow_hub as hub
 import numpy as np
+# Computer vision/graphics library
 import cv2
+# Gif writer
 import imageio
+# Display libraries 
+import matplotlib.pyplot as plt 
+from IPython.display import HTML, display
 
-# Load the MoveNet model from TensorFlow Hub
-movenet = hub.load("https://tfhub.dev/google/movenet/singlepose/thunder/4")
+#display results
+from tensorflow_docs.vis import embed
 
-# Define the mapping of keypoints to body parts
-keypoint_names = ['nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear', 'left_shoulder', 'right_shoulder',
-                  'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
-                  'left_knee', 'right_knee', 'left_ankle', 'right_ankle']
 
-# Define the connections between keypoints to draw lines for visualization
-connections = [(0, 1), (0, 2), (1, 3), (2, 4), (0, 5), (0, 6), (5, 7), (7, 9), (6, 8), (8, 10),
-               (5, 6), (5, 11), (6, 12), (11, 12), (11, 13), (13, 15), (12, 14), (14, 16)]
+# Mapping the bones by color (some bones are cyan and some are magenta)
+cyan = (255, 255, 0)
+magenta = (255, 0, 255)
 
-# Function to perform pose detection on an image sequence or GIF
-def detect_pose_sequence_of(gif_path):
-     # Load the GIF
-    gif = cv2.VideoCapture(gif_path)
-    frames = []
-    # Read frames from the GIF
-    while True:
+EDGE_COLORS = {
+    (0, 1): magenta,
+    (0, 2): cyan,
+    (1, 3): magenta,
+    (2, 4): cyan,
+    (0, 5): magenta,
+    (0, 6): cyan,
+    (5, 7): magenta,
+    (7, 9): cyan,
+    (6, 8): magenta,
+    (8, 10): cyan,
+    (5, 6): magenta,
+    (5, 11): cyan,
+    (6, 12): magenta,
+    (11, 12): cyan,
+    (11, 13): magenta,
+    (13, 15): cyan,
+    (12, 14): magenta,
+    (14, 16): cyan
+}
+
+
+# Loading Lightning model from TensorFlow hub
+model = hub.load("https://tfhub.dev/google/movenet/multipose/lightning/1")
+movenet = model.signatures["serving_default"]
+
+#initial_width, initial_height = (461,250)
+WIDTH = HEIGHT = 256
+
+def loop(frame, keypoints, threshold=0.11):
+    """
+    Main loop : Draws the keypoints and edges for each instance
+    """
+    
+    # Loop through the results
+    for instance in keypoints: 
+        # Draw the keypoints and get the denormalized coordinates
+        denormalized_coordinates = draw_keypoints(frame, instance, threshold)
+        # Draw the edges
+        draw_edges(denormalized_coordinates, frame, EDGE_COLORS, threshold)
+
+def draw_keypoints(frame, keypoints, threshold=0.11):
+    """Draws the keypoints on a image frame"""
+    
+    # Denormalize the coordinates : multiply the normalized coordinates by the input_size(width,height)
+    denormalized_coordinates = np.squeeze(np.multiply(keypoints, [WIDTH,HEIGHT,1]))
+    #Iterate through the points
+    for keypoint in denormalized_coordinates:
+        # Unpack the keypoint values : y, x, confidence score
+        keypoint_y, keypoint_x, keypoint_confidence = keypoint
+        if keypoint_confidence > threshold:
+            """"
+            Draw the circle
+            Note : A thickness of -1 px will fill the circle shape by the specified color.
+            """
+            cv2.circle(
+                img=frame, 
+                center=(int(keypoint_x), int(keypoint_y)), 
+                radius=4, 
+                color=(255,0,0),
+                thickness=-1
+            )
+    return denormalized_coordinates
+
+def draw_edges(denormalized_coordinates, frame, edges_colors, threshold=0.11):
+    """
+    Draws the edges on a image frame
+    """
+    
+    # Iterate through the edges 
+    for edge, color in edges_colors.items():
+        # Get the dict value associated to the actual edge
+        p1, p2 = edge
+        # Get the points
+        y1, x1, confidence_1 = denormalized_coordinates[p1]
+        y2, x2, confidence_2 = denormalized_coordinates[p2]
+        # Draw the line from point 1 to point 2, the confidence > threshold
+        if (confidence_1 > threshold) & (confidence_2 > threshold):      
+            cv2.line(
+                img=frame, 
+                pt1=(int(x1), int(y1)),
+                pt2=(int(x2), int(y2)), 
+                color=color, 
+                thickness=2, 
+                lineType=cv2.LINE_AA # Gives anti-aliased (smoothed) line which looks great for curves
+            )
+            
+def progress(value, max=100):
+    """
+    Returns an HTML progress bar with a certain value. Used within each step
+    """
+    
+    
+    return HTML("""
+      <progress
+          value='{value}'
+          max='{max}',
+          style='width: 100%'
+      >
+          {value}
+      </progress>
+  """.format(value=value,
+                max=max))
+
+
+def load_gif():
+    """
+    Loads the gif and return its details
+    """
+    
+    # Load the gif
+    gif = cv2.VideoCapture("./ngannou.gif")
+    # Get the frame count
+    frame_count = int(gif.get(cv2.CAP_PROP_FRAME_COUNT))
+    # Display parameter
+    print(f"Frame count: {frame_count}")
+    
+    """""
+    Initialize the video writer 
+    We'll append each frame and its drawing to a vector, then stack all the frames to obtain a sequence (video). 
+    """
+    output_frames = []
+    
+    # Get the initial shape (width, height)
+    initial_shape = []
+    initial_shape.append(int(gif.get(cv2.CAP_PROP_FRAME_WIDTH)))
+    initial_shape.append(int(gif.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    
+    return gif, frame_count, output_frames, initial_shape
+
+def run_inference():
+    """
+    Runs inferences then starts the main loop for each frame
+    """
+    
+    # Load the gif
+    gif, frame_count, output_frames, initial_shape = load_gif()
+    # Set the progress bar to 0. It ranges from the first to the last frame
+    bar = display(progress(0, frame_count-1), display_id=True)
+    
+    # Loop while the gif is opened
+    while gif.isOpened():
+        
+        # Capture the frame
         ret, frame = gif.read()
-        if not ret:
+        
+        # Exit if the frame is empty
+        if frame is None: 
             break
-        frames.append(frame)
-    # Initialize an empty list to store keypoints for each frame
-    all_keypoints = []
-    # Iterate through each frame
-    for frame in frames:
-        # Convert frame to RGB
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # Resize frame to the expected input size of MoveNet
-        frame_resized = tf.image.resize_with_pad(tf.expand_dims(frame_rgb, axis=0), 256, 256) # 256 for thunder
-        # Convert the resized frame tensor to a NumPy array with dtype uint8
-        frame_np = frame_resized.numpy().astype(np.int32)
+        
+        # Retrieve the frame index
+        current_index = gif.get(cv2.CAP_PROP_POS_FRAMES)
+        
+        # Copy the frame
+        image = frame.copy()
+        image = cv2.resize(image, (WIDTH,HEIGHT))
+        # Resize to the target shape and cast to an int32 vector
+        input_image = tf.cast(tf.image.resize_with_pad(image, WIDTH, HEIGHT), dtype=tf.int32)
+        # Create a batch (input tensor)
+        input_image = tf.expand_dims(input_image, axis=0)
+
         # Perform inference
-        outputs = movenet.signatures["serving_default"](tf.constant(frame_np))
-        # Extract the keypoints
-        keypoints = outputs['output_0'].numpy()
-        # Append keypoints to the list
-        all_keypoints.append(keypoints)
-    # Return keypoints for all frames
-    return all_keypoints
+        results = movenet(input_image)
+        """
+        Output shape :  [1, 6, 56] ---> (batch size), (instances), (xy keypoints coordinates and score from [0:50] 
+        and [ymin, xmin, ymax, xmax, score] for the remaining elements)
+        First, let's resize it to a more convenient shape, following this logic : 
+        - First channel ---> each instance
+        - Second channel ---> 17 keypoints for each instance
+        - The 51st values of the last channel ----> the confidence score.
+        Thus, the Tensor is reshaped without losing important information. 
+        """
+        
+        keypoints = results["output_0"].numpy()[:,:,:51].reshape((6,17,3))
 
-# Function to visualize keypoints on an image sequence or GIF and create a new GIF
-def visualize_and_create_pose_sequence(gif_path, keypoints_list, output_gif_path, default_fps=10):
-    # Load the GIF
-    gif = imageio.get_reader(gif_path)
-    # Initialize list to store frames with keypoints overlay
-    frames_with_keypoints = []
-    # Loop through each frame and its corresponding keypoints
-    for frame_index, (frame, keypoints) in enumerate(zip(gif, keypoints_list)):
-        # Convert keypoints to numpy array
-        keypoints = np.array(keypoints)
-        # Ensure keypoints array has the expected shape
-        if keypoints.shape == (1, 1, 17, 3):
-            # Extract keypoints from the array
-            keypoints = keypoints[0, 0]
-            # Loop through each keypoint
-            for kp_index, kp in enumerate(keypoints):
-                # Extract x and y coordinates of the keypoint
-                x = int(kp[1] * frame.shape[1])
-                y = int(kp[0] * frame.shape[0])
-                # Check if the keypoint is critical
-                if keypoint_names[kp_index] in ['nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear']:
-                    # Calculate the average position of neighboring keypoints
-                    neighbor_indices = [c for c in connections if kp_index in c]
-                    neighbor_positions = []
-                    for connection in neighbor_indices:
-                        neighbor_kp_index = connection[0] if connection[1] == kp_index else connection[1]
-                        neighbor_positions.append(keypoints[neighbor_kp_index])
-                    neighbor_positions = np.array(neighbor_positions)
-                    average_x = int(np.mean(neighbor_positions[:, 1]) * frame.shape[1])
-                    average_y = int(np.mean(neighbor_positions[:, 0]) * frame.shape[0])
-                    # Update the position of the critical keypoint
-                    x = average_x
-                    y = average_y
-                # Draw a circle at the adjusted keypoint position
-                cv2.circle(frame, (x, y), 4, (255, 0, 0), -1)  # Increase thickness and change color to blue
-            # Draw lines connecting keypoints
-            for connection in connections:
-                start_point = (int(keypoints[connection[0], 1] * frame.shape[1]),
-                               int(keypoints[connection[0], 0] * frame.shape[0]))
-                end_point = (int(keypoints[connection[1], 1] * frame.shape[1]),
-                             int(keypoints[connection[1], 0] * frame.shape[0]))
-                cv2.line(frame, start_point, end_point, (0, 0, 255), 1)  # Increase thickness and change color to red
-            # Append the frame with keypoints overlay to the list
-            frames_with_keypoints.append(frame)
-        else:
-            print("Unexpected shape of keypoints array for frame", frame_index + 1)
-    # Remove the last frame if it's a black frame
-    if np.all(frames_with_keypoints[-1] == [0, 0, 0]):
-        frames_with_keypoints.pop()
-    # Get the frame rate from the metadata if available, otherwise use the default frame rate
-    try:
-        fps = gif.get_meta_data()['fps']
-    except KeyError:
-        fps = default_fps
-    # Save the frames with keypoints overlay as a new GIF
-    imageio.mimsave(output_gif_path, frames_with_keypoints, fps=fps)
+        # Loop through the results
+        loop(image, keypoints, threshold=0.11)
+        
+        # Get the output frame : reshape to the original size
+        frame_rgb = cv2.cvtColor(
+            cv2.resize(
+                image,(initial_shape[0], initial_shape[1]), 
+                interpolation=cv2.INTER_LANCZOS4
+            ), 
+            cv2.COLOR_BGR2RGB # OpenCV processes BGR images instead of RGB
+        ) 
+        
+        # Add the drawings to the output frames
+        output_frames.append(frame_rgb)
+        
+        # Update the progress bar
+        display(progress(current_index, frame_count-1), display_id=True)
+    
+    # Release the object
+    gif.release()
+    
+    print("Completed !")
+    
+    return output_frames
 
-input_gif_path = "dance.gif"  # Replace with the path to your input GIF
-output_gif_path = "dance2.gif"  # Path to save the new GIF with keypoints overlay
-sequence_keypoints = detect_pose_sequence_of(input_gif_path)
-visualize_and_create_pose_sequence(input_gif_path, sequence_keypoints, output_gif_path)
+output_frames = run_inference()
+
+# Stack the output frames horizontally to compose a sequence
+output = np.stack(output_frames, axis=0) 
+# Write the sequence to a gif
+imageio.mimsave("./animation.gif", output, fps=15) 
+# Embed the output to the notebook
+embed.embed_file("./animation.gif")
