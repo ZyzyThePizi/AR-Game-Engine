@@ -5,9 +5,9 @@ import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 
 import {
-        PoseLandmarker,
-        FilesetResolver,
-        DrawingUtils
+    PoseLandmarker,
+    FilesetResolver,
+    DrawingUtils, NormalizedLandmark
 } from '@mediapipe/tasks-vision';
 
 const demosSection = document.getElementById("demos");
@@ -38,73 +38,6 @@ const createPoseLandmarker = async () => {
     demosSection?.classList.remove("invisible");
 };
 createPoseLandmarker();
-
-/********************************************************************
- // Demo 1: Grab a bunch of images from the page and detection them
- // upon click.
- ********************************************************************/
-
-// In this demo, we have put all our clickable images in divs with the
-// CSS class 'detectionOnClick'. Lets get all the elements that have
-// this class.
-const imageContainers = document.getElementsByClassName("detectOnClick");
-
-// Now let's go through all of these and add a click event listener.
-for (let i = 0; i < imageContainers.length; i++) {
-    // Add event listener to the child element whichis the img element.
-    imageContainers[i].children[0].addEventListener("click", handleClick);
-}
-
-// When an image is clicked, let's detect it and display results!
-async function handleClick(event: any) {
-    if (!poseLandmarker) {
-        console.log("Wait for poseLandmarker to load before clicking!");
-        return;
-    }
-
-    if (runningMode === "VIDEO") {
-        runningMode = "IMAGE";
-        await poseLandmarker.setOptions({ runningMode: "IMAGE" });
-    }
-    // Remove all landmarks drawed before
-    const allCanvas = event.target.parentNode.getElementsByClassName("canvas");
-    for (var i = allCanvas.length - 1; i >= 0; i--) {
-        const n = allCanvas[i];
-        n.parentNode.removeChild(n);
-    }
-
-    // We can call poseLandmarker.detect as many times as we like with
-    // different image data each time. The result is returned in a callback.
-    poseLandmarker.detect(event.target, (result) => {
-        const canvas = document.createElement("canvas");
-        canvas.setAttribute("class", "canvas");
-        canvas.setAttribute("width", event.target.naturalWidth + "px");
-        canvas.setAttribute("height", event.target.naturalHeight + "px");
-/*        canvas.style =
-            "left: 0px;" +
-            "top: 0px;" +
-            "width: " +
-            event.target.width +
-            "px;" +
-            "height: " +
-            event.target.height +
-            "px;";*/
-
-        event.target.parentNode.appendChild(canvas);
-        const canvasCtx = canvas.getContext("2d");
-        const drawingUtils = new DrawingUtils(canvasCtx);
-        for (const landmark of result.landmarks) {
-            drawingUtils.drawLandmarks(landmark, {
-                radius: (data) => DrawingUtils.lerp(data.from!.z, -0.15, 0.1, 5, 1)
-            });
-            drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
-        }
-    });
-}
-
-/********************************************************************
- // Demo 2: Continuously grab image from webcam stream and detect it.
- ********************************************************************/
 
 const video = document.getElementById("webcam") as HTMLVideoElement;
 const canvasElement = document.getElementById(
@@ -169,11 +102,41 @@ async function predictWebcam() {
         poseLandmarker.detectForVideo(video, startTimeMs, (result) => {
             canvasCtx?.save();
             canvasCtx?.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            for (const landmark of result.landmarks) {
+            const reducedLandmarks = result.landmarks.map(landmark => {
+                return [
+                    landmark[11], // left shoulder
+                    landmark[12], // right shoulder
+                    landmark[13], // left elbow
+                    landmark[14], // right elbow
+                    landmark[15], // left wrist
+                    landmark[16], // right wrist
+                    landmark[17], // left pinky
+                    landmark[18], // right pinky
+                    landmark[19], // left index
+                    landmark[20], // right index
+                    landmark[21], // left thumb
+                    landmark[22], // right thumb
+                ];
+            });
+            for (const landmark of reducedLandmarks) {
                 drawingUtils.drawLandmarks(landmark, {
                     radius: (data) => DrawingUtils.lerp(data.from!.z, -0.15, 0.1, 5, 1)
                 });
-                drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
+                drawingUtils.drawConnectors(landmark,  [
+                    {start: 11, end: 12}, // connection between shoulders
+                    {start: 11, end: 13}, // connection between left shoulder and elbow
+                    {start: 12, end: 14}, // connection between right shoulder and elbow
+                    {start: 13, end: 15}, // connection between left elbow and wrist
+                    {start: 14, end: 16}, // connection between right elbow and wrist
+                    {start: 15, end: 21}, // connection between left wrist and thumb
+                    {start: 15, end: 17}, // connection between left wrist and pinky
+                    {start: 15, end: 19}, // connection between left wrist and index
+                    {start: 16, end: 18}, // connection between right wrist and pinky
+                    {start: 16, end: 20}, // connection between right wrist and index
+                    {start: 16, end: 22}, // connection between right wrist and thumb
+                    {start: 17, end: 19}, // connection between left pinky and index
+                    {start: 18, end: 20} // connection between right pinky and index
+                ]);
             }
             canvasCtx?.restore();
         });
