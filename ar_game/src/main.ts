@@ -17,8 +17,8 @@ let poseLandmarker: PoseLandmarker = {} as PoseLandmarker;
 let runningMode = "IMAGE";
 let enableWebcamButton: HTMLButtonElement;
 let webcamRunning: Boolean = false;
-const videoHeight = "360px";
-const videoWidth = "480px";
+const videoHeight = "540px";
+const videoWidth = "720px";
 
 // Before we can use PoseLandmarker class we must wait for it to finish
 // loading. Machine Learning models can be large and take a moment to
@@ -119,8 +119,9 @@ async function predictWebcam() {
                 ];
             });
             for (const landmark of reducedLandmarks) {
-                drawingUtils.drawLandmarks(landmark, {
-                    radius: (data) => DrawingUtils.lerp(data.from!.z, -0.15, 0.1, 5, 1)
+                drawingUtils.drawLandmarks(landmark,  {
+                    radius: 8, // Larger radius for the joints
+                    color: 'purple', // Custom color for the joints
                 });
                 drawingUtils.drawConnectors(landmark,  [
                     {start: 11, end: 12}, // connection between shoulders
@@ -147,6 +148,3 @@ async function predictWebcam() {
         window.requestAnimationFrame(predictWebcam);
     }
 }
-
-platformBrowserDynamic().bootstrapModule(AppModule)
-  .catch(err => console.error(err));
