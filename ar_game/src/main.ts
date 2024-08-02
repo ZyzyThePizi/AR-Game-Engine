@@ -4,6 +4,8 @@ import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 
+import { Rectangle } from "./Rectangle";
+
 import {
     PoseLandmarker,
     FilesetResolver,
@@ -17,8 +19,8 @@ let poseLandmarker: PoseLandmarker = {} as PoseLandmarker;
 let runningMode = "IMAGE";
 let enableWebcamButton: HTMLButtonElement;
 let webcamRunning: Boolean = false;
-const videoHeight = "540px";
-const videoWidth = "720px";
+const videoHeight = 540;
+const videoWidth = 720;
 
 // Before we can use PoseLandmarker class we must wait for it to finish
 // loading. Machine Learning models can be large and take a moment to
@@ -40,11 +42,15 @@ const createPoseLandmarker = async () => {
 createPoseLandmarker();
 
 const video = document.getElementById("webcam") as HTMLVideoElement;
-const canvasElement = document.getElementById(
-    "output_canvas"
+const baseCanvas = document.getElementById(
+    "base_canvas"
 ) as HTMLCanvasElement;
-const canvasCtx = canvasElement.getContext("2d");
-const drawingUtils = new DrawingUtils(canvasCtx);
+const topCanvas = document.getElementById(
+    "top_canvas"
+) as HTMLCanvasElement;
+const baseCanvasCtx = baseCanvas.getContext("2d");
+const topCanvasCtx = baseCanvas.getContext("2d");
+const drawingUtils = new DrawingUtils(baseCanvasCtx);
 
 // Check if webcam access is supported.
 const hasGetUserMedia = () => !!navigator.mediaDevices?.getUserMedia;
@@ -85,23 +91,38 @@ function enableCam(event: any) {
     });
 }
 
+
+let random_Y = Math.random() * videoHeight;
+let rectangle = new Rectangle(0, random_Y, "blue", "asd", 1, videoWidth, videoHeight, topCanvasCtx);
+
+
+
+let updateRectangle = function () {
+    requestAnimationFrame(updateRectangle);
+    rectangle.update();
+}
+
+
+
 let lastVideoTime = -1;
 async function predictWebcam() {
-    canvasElement.style.height = videoHeight;
-    video.style.height = videoHeight;
-    canvasElement.style.width = videoWidth;
-    video.style.width = videoWidth;
+    baseCanvas.style.height = videoHeight + "px";
+    video.style.height = videoHeight + "px";
+    baseCanvas.style.width = videoWidth + "px";
+    video.style.width = videoWidth + "px";
     // Now let's start detecting the stream.
     if (runningMode === "IMAGE") {
         runningMode = "VIDEO";
         await poseLandmarker.setOptions({ runningMode: "VIDEO" });
     }
     let startTimeMs = performance.now();
+    rectangle.draw();
+    updateRectangle();
     if (lastVideoTime !== video.currentTime) {
         lastVideoTime = video.currentTime;
         poseLandmarker.detectForVideo(video, startTimeMs, (result) => {
-            canvasCtx?.save();
-            canvasCtx?.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            baseCanvasCtx?.save();
+            baseCanvasCtx?.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
             const reducedLandmarks = result.landmarks.map(landmark => {
                 return [
                     landmark[11], // left shoulder
@@ -123,23 +144,8 @@ async function predictWebcam() {
                     radius: 8, // Larger radius for the joints
                     color: 'purple', // Custom color for the joints
                 });
-                drawingUtils.drawConnectors(landmark,  [
-                    {start: 11, end: 12}, // connection between shoulders
-                    {start: 11, end: 13}, // connection between left shoulder and elbow
-                    {start: 12, end: 14}, // connection between right shoulder and elbow
-                    {start: 13, end: 15}, // connection between left elbow and wrist
-                    {start: 14, end: 16}, // connection between right elbow and wrist
-                    {start: 15, end: 21}, // connection between left wrist and thumb
-                    {start: 15, end: 17}, // connection between left wrist and pinky
-                    {start: 15, end: 19}, // connection between left wrist and index
-                    {start: 16, end: 18}, // connection between right wrist and pinky
-                    {start: 16, end: 20}, // connection between right wrist and index
-                    {start: 16, end: 22}, // connection between right wrist and thumb
-                    {start: 17, end: 19}, // connection between left pinky and index
-                    {start: 18, end: 20} // connection between right pinky and index
-                ]);
             }
-            canvasCtx?.restore();
+            baseCanvasCtx?.restore();
         });
     }
 
