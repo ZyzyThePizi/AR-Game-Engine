@@ -2,4 +2,4 @@
 
 ## Perquisites
 
-- Install necessary modules with ''**npm i**''
+- Install necessary modules with ''**npm i**'' inside ar_game folder --> cd ./ar_game
