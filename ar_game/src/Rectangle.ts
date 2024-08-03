@@ -5,6 +5,8 @@ export class Rectangle {
     private text: string;
     private speed: number;
 
+    public Xpos():number { return this.xpos }
+
     private cvWidth: number;
     private cvHeight: number;
 
@@ -27,17 +29,33 @@ export class Rectangle {
     }
 
     draw(): void {
-        this.ctx.fillStyle = this.color;
-        this.ctx.fillRect(this.xpos, this.ypos, 50, 50)
+
+        this.ctx.shadowColor = '#898';
+        this.ctx.shadowBlur = 20;
+        this.ctx.shadowOffsetX = 10;
+        this.ctx.shadowOffsetY = 10;
+
+        this.ctx.borderRadius = '10px'
+
+
+        this.ctx.beginPath();
+        this.ctx.roundRect(this.xpos - 170, this.ypos, 150, 50,[10]);
+        this.ctx.fillStyle = "orange";
+        this.ctx.fill();
+        this.ctx.closePath();
+
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = 'bold 20pt Arial';
+        this.ctx.fillText(this.text, this.xpos + 75 - 170, this.ypos+25)
     }
 
-    update():void  {
-
-        this.ctx.clearRect(0,0, this.cvWidth, this.cvHeight);
-        this.draw();
-
+    update(): void {
+        this.ctx.clearRect(0, 0, this.cvWidth + 740, this.cvHeight + 500);
         this.xpos += this.dx;
+        if (this.xpos < this.cvWidth + 730) {
+            this.draw();
+        }
     }
-
-
 }
