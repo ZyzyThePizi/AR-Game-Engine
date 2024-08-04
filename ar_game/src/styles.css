@@ -1,4 +1,7 @@
-@use "@material";
+@import 'ngx-toastr/toastr';
+
+@use '@material';
+
 body {
     font-family: roboto;
     margin: 2em;

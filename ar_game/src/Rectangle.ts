@@ -5,6 +5,8 @@ export class Rectangle {
     private text: string;
     private speed: number;
 
+    private isBackward: boolean;
+
     public Xpos():number { return this.xpos }
 
     private cvWidth: number;
@@ -23,6 +25,8 @@ export class Rectangle {
         this.cvWidth = cvWidth;
         this.cvHeight = cvHeight;
 
+        this.isBackward = cvWidth == xpos ? true: false;
+
         this.dx = 1 * this.speed;
 
         this.ctx = ctx;
@@ -40,7 +44,7 @@ export class Rectangle {
 
         this.ctx.beginPath();
         this.ctx.roundRect(this.xpos - 170, this.ypos, 150, 50,[10]);
-        this.ctx.fillStyle = "orange";
+        this.ctx.fillStyle = this.color;
         this.ctx.fill();
         this.ctx.closePath();
 
@@ -53,9 +57,17 @@ export class Rectangle {
 
     update(): void {
         this.ctx.clearRect(0, 0, this.cvWidth + 740, this.cvHeight + 500);
-        this.xpos += this.dx;
-        if (this.xpos < this.cvWidth + 730) {
-            this.draw();
+        if (!this.isBackward) {
+            this.xpos += this.dx;
+            if (this.xpos < this.cvWidth + 730) {
+                this.draw();
+            }
+        }
+        else {
+            this.xpos -= this.dx;
+            if (this.xpos > 0) {
+                this.draw();
+            }
         }
     }
 }

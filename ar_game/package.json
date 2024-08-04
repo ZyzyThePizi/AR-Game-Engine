@@ -9,7 +9,7 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "^14.2.0",
+    "@angular/animations": "^14.3.0",
     "@angular/cdk": "^14.2.7",
     "@angular/common": "^14.2.0",
     "@angular/compiler": "^14.2.0",
@@ -20,6 +20,7 @@
     "@angular/platform-browser-dynamic": "^14.2.0",
     "@angular/router": "^14.2.0",
     "@mediapipe/tasks-vision": "^0.10.14",
+    "ngx-toastr": "^14.1.4",
     "primeflex": "^3.3.1",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",

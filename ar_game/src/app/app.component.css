@@ -97,3 +97,9 @@ footer {
 .detectOnClick img {
     width: 100%;
 }
+
+.custom-background {
+    background-image: url('../assets/kyndryl_logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+}

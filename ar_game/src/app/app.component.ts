@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { ToastrService } from 'ngx-toastr';
 import { Rectangle } from '../Rectangle';
 import {
   PoseLandmarker,
@@ -12,6 +13,9 @@ import {
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
+
+  constructor(private toastr: ToastrService) {}
+
   title = 'pose-landmarker-app';
   poseLandmarker: PoseLandmarker = {} as PoseLandmarker;
   runningMode: "IMAGE" | "VIDEO" = "IMAGE";
@@ -24,6 +28,11 @@ export class AppComponent implements OnInit {
   baseCanvasCtx!: CanvasRenderingContext2D;
   topCanvasCtx!: CanvasRenderingContext2D;
   drawingUtils!: DrawingUtils;
+
+  movingObjects = {
+    label: 'Start objects',
+    isMoving: false
+  }
 
   async ngOnInit() {
     await this.createPoseLandmarker();
@@ -80,9 +89,7 @@ export class AppComponent implements OnInit {
     });
   }
 
-  startObjects() {
-    if (!this.webcamRunning) return;
-
+  startObjectsForward() {
     this.topCanvasCtx.clearRect(0, 0, this.videoWidth + 570, this.videoHeight + 500);
 
     const random_Y = Math.random() * this.videoHeight + 100;
@@ -94,9 +101,9 @@ export class AppComponent implements OnInit {
 
     let updateRectangle = () => {
       rectangle.update();
-      if (rectangle.Xpos() >= this.videoWidth + 730) {
+      if (rectangle.Xpos() >= this.videoWidth + 730 || !this.movingObjects.isMoving) {
         cancelAnimationFrame(animationId);
-        this.startObjects();
+        this.startObjectsForward();
       } else {
         animationId = requestAnimationFrame(updateRectangle);
       }
@@ -105,7 +112,41 @@ export class AppComponent implements OnInit {
     updateRectangle();
   }
 
+/*  startObjectsBackward() {
+    if (!this.webcamRunning) return;
 
+    this.topCanvasCtx.clearRect(0, 0, this.videoWidth + 570, this.videoHeight + 500);
+
+    const random_Y = Math.random() * this.videoHeight + 100;
+    const rectangle = new Rectangle(this.videoWidth, random_Y, "blue", "AWS", this.getRandomInt(10,20), this.videoWidth, this.videoHeight, this.topCanvasCtx);
+    let animationId: number;
+    this.topCanvas.style.height = this.videoHeight + "px";
+    this.topCanvas.style.width = this.videoWidth + "px";
+    rectangle.draw();
+
+    let updateRectangle = () => {
+      rectangle.update();
+      if (rectangle.Xpos() <= 0 || !this.movingObjects.isMoving) {
+        cancelAnimationFrame(animationId);
+        this.startObjectsBackward();
+      } else {
+        animationId = requestAnimationFrame(updateRectangle);
+      }
+    }
+
+    updateRectangle();
+  }*/
+
+  onEventButton() {
+    if (!this.webcamRunning) {
+      this.toastr.warning('Camera is not running!', 'Warning!');
+      return;
+    }
+    this.movingObjects.isMoving = !this.movingObjects.isMoving;
+    this.movingObjects.label = this.movingObjects.isMoving ? 'Stop objects': 'Start objects';
+    this.startObjectsForward();
+/*    this.startObjectsBackward();*/
+  }
 
 
   async predictWebcam() {

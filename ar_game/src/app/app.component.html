@@ -1,7 +1,8 @@
-<h1>Pose detection using the MediaPipe PoseLandmarker task</h1>
+<div class="overflow-hidden">
+    <div class="bg-cover bg-center border-primary-500 border-round h-12rem w-full custom-background"></div>
+</div>
 
 <section id="demos" class="invisible">
-    <h2>Demo: Webcam continuous pose landmarks detection</h2>
     <p>Stand in front of your webcam to get real-time pose landmarker <br> <b>enable webcam</b> below and grant access to the webcam if prompted.</p>
     <div class="grid">
         <div class="col-6">
@@ -10,7 +11,7 @@
                     <span class="mdc-button__ripple"></span>
                     <span class="mdc-button__label">ENABLE WEBCAM</span>
                 </button>
-                <button id="rectangleButton" (click)="startObjects()"><span>Start objects</span></button>
+                <button id="rectangleButton" (click)="onEventButton()"><span>{{movingObjects.label}}</span></button>
                 <div style="position: relative;">
                     <video id="webcam" [style.width]="1280+'px'" [style.height]="720+'px'"  autoplay playsinline></video>
                     <canvas class="base_canvas" id="base_canvas" [width]="1280" [height]="720" style="position: absolute; left: 0px; top: 0px;"></canvas>
