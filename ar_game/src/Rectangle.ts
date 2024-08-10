@@ -7,6 +7,10 @@ export class Rectangle {
 
     private isBackward: boolean;
 
+    public NormalizedX():number {
+        return (this.xpos-0)/(this.cvWidth-0)
+    }
+
     public Xpos():number { return this.xpos }
 
     private cvWidth: number;
@@ -43,7 +47,7 @@ export class Rectangle {
 
 
         this.ctx.beginPath();
-        this.ctx.roundRect(this.xpos - 170, this.ypos, 150, 50,[10]);
+        this.ctx.roundRect(this.xpos, this.ypos, 100, 50,[10]);
         this.ctx.fillStyle = this.color;
         this.ctx.fill();
         this.ctx.closePath();
@@ -52,14 +56,14 @@ export class Rectangle {
         this.ctx.textBaseline = 'middle';
         this.ctx.fillStyle = 'white';
         this.ctx.font = 'bold 20pt Arial';
-        this.ctx.fillText(this.text, this.xpos + 75 - 170, this.ypos+25)
+        this.ctx.fillText(this.text, this.xpos + 50, this.ypos+25)
     }
 
     update(): void {
-        this.ctx.clearRect(0, 0, this.cvWidth + 740, this.cvHeight + 500);
+        this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
         if (!this.isBackward) {
             this.xpos += this.dx;
-            if (this.xpos < this.cvWidth + 730) {
+            if (this.xpos < this.cvWidth) {
                 this.draw();
             }
         }

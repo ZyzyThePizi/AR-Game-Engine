@@ -1,11 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { ToastrService } from 'ngx-toastr';
-import { Rectangle } from '../Rectangle';
 import {
   PoseLandmarker,
   FilesetResolver,
   DrawingUtils
 } from '@mediapipe/tasks-vision';
+import { Menu } from "../Menu";
+import { MenuElement } from "../MenuElement";
 
 @Component({
   selector: 'app-root',
@@ -14,9 +15,7 @@ import {
 })
 export class AppComponent implements OnInit {
 
-  constructor(private toastr: ToastrService) {}
 
-  title = 'pose-landmarker-app';
   poseLandmarker: PoseLandmarker = {} as PoseLandmarker;
   runningMode: "IMAGE" | "VIDEO" = "IMAGE";
   webcamRunning: boolean = false;
@@ -28,22 +27,40 @@ export class AppComponent implements OnInit {
   baseCanvasCtx!: CanvasRenderingContext2D;
   topCanvasCtx!: CanvasRenderingContext2D;
   drawingUtils!: DrawingUtils;
-
+  squeres: MenuElement[];
+  menu: any;
   movingObjects = {
     label: 'Start objects',
     isMoving: false
   }
 
+  constructor(private toastr: ToastrService) {
+    // init menu data
+    this.squeres =[
+      { text: "Racer", color: "#50b8e7"},
+      { text: "Coin Collector", color: "#50b8e7"},
+      { text: "Balancer", color: "#50b8e7"}
+    ];
+  }
+
   async ngOnInit() {
     await this.createPoseLandmarker();
+    // get html elements
     this.video = document.getElementById("webcam") as HTMLVideoElement;
     this.baseCanvas = document.getElementById("base_canvas") as HTMLCanvasElement;
     this.topCanvas = document.getElementById("top_canvas") as HTMLCanvasElement;
     this.baseCanvasCtx = this.baseCanvas.getContext("2d")!;
     this.topCanvasCtx = this.topCanvas.getContext("2d")!;
     this.drawingUtils = new DrawingUtils(this.baseCanvasCtx);
+    // width of canvases and vide frame (for camera)
+    this.baseCanvas.width = this.videoWidth;
+    this.baseCanvas.height = this.videoHeight;
+    this.topCanvas.width = this.videoWidth;
+    this.topCanvas.height = this.videoHeight;
+    this.video.style.height = this.videoHeight + "px";
+    this.video.style.width = this.videoWidth + "px";
+    this.menu = new Menu(this.videoWidth, this.videoHeight, this.topCanvasCtx, this.squeres);
   }
-
 
 
   async createPoseLandmarker() {
@@ -76,6 +93,7 @@ export class AppComponent implements OnInit {
       (event.target as HTMLButtonElement).innerText = "ENABLE PREDICTIONS";
     } else {
       this.webcamRunning = true;
+      setTimeout( () => { this.drawMenu(); }, 1000);
       (event.target as HTMLButtonElement).innerText = "DISABLE PREDICTIONS";
     }
 
@@ -89,72 +107,7 @@ export class AppComponent implements OnInit {
     });
   }
 
-  startObjectsForward() {
-    this.topCanvasCtx.clearRect(0, 0, this.videoWidth + 570, this.videoHeight + 500);
-
-    const random_Y = Math.random() * this.videoHeight + 100;
-    const rectangle = new Rectangle(0, random_Y, "orange", "KYNDRYL", this.getRandomInt(10,20), this.videoWidth, this.videoHeight, this.topCanvasCtx);
-    let animationId: number;
-    this.topCanvas.style.height = this.videoHeight + "px";
-    this.topCanvas.style.width = this.videoWidth + "px";
-    rectangle.draw();
-
-    let updateRectangle = () => {
-      rectangle.update();
-      if (rectangle.Xpos() >= this.videoWidth + 730 || !this.movingObjects.isMoving) {
-        cancelAnimationFrame(animationId);
-        this.startObjectsForward();
-      } else {
-        animationId = requestAnimationFrame(updateRectangle);
-      }
-    }
-
-    updateRectangle();
-  }
-
-/*  startObjectsBackward() {
-    if (!this.webcamRunning) return;
-
-    this.topCanvasCtx.clearRect(0, 0, this.videoWidth + 570, this.videoHeight + 500);
-
-    const random_Y = Math.random() * this.videoHeight + 100;
-    const rectangle = new Rectangle(this.videoWidth, random_Y, "blue", "AWS", this.getRandomInt(10,20), this.videoWidth, this.videoHeight, this.topCanvasCtx);
-    let animationId: number;
-    this.topCanvas.style.height = this.videoHeight + "px";
-    this.topCanvas.style.width = this.videoWidth + "px";
-    rectangle.draw();
-
-    let updateRectangle = () => {
-      rectangle.update();
-      if (rectangle.Xpos() <= 0 || !this.movingObjects.isMoving) {
-        cancelAnimationFrame(animationId);
-        this.startObjectsBackward();
-      } else {
-        animationId = requestAnimationFrame(updateRectangle);
-      }
-    }
-
-    updateRectangle();
-  }*/
-
-  onEventButton() {
-    if (!this.webcamRunning) {
-      this.toastr.warning('Camera is not running!', 'Warning!');
-      return;
-    }
-    this.movingObjects.isMoving = !this.movingObjects.isMoving;
-    this.movingObjects.label = this.movingObjects.isMoving ? 'Stop objects': 'Start objects';
-    this.startObjectsForward();
-/*    this.startObjectsBackward();*/
-  }
-
-
   async predictWebcam() {
-    this.baseCanvas.style.height = this.videoHeight + "px";
-    this.video.style.height = this.videoHeight + "px";
-    this.baseCanvas.style.width = this.videoWidth + "px";
-    this.video.style.width = this.videoWidth + "px";
-
     if (this.runningMode === "IMAGE") {
       this.runningMode = "VIDEO";
       await this.poseLandmarker.setOptions({ runningMode: "VIDEO" });
@@ -169,23 +122,31 @@ export class AppComponent implements OnInit {
         this.baseCanvasCtx.clearRect(0, 0, this.baseCanvas.width, this.baseCanvas.height);
         const reducedLandmarks = result.landmarks.map(landmark => {
           return [
-            landmark[11], // left shoulder
-            landmark[12], // right shoulder
-            landmark[13], // left elbow
-            landmark[14], // right elbow
-            landmark[15], // left wrist
-            landmark[16], // right wrist
-            landmark[17], // left pinky
-            landmark[18], // right pinky
-            landmark[19], // left index
-            landmark[20], // right index
-            landmark[21], // left thumb
-            landmark[22], // right thumb
+            landmark[11], // left shoulder 0
+            landmark[12], // right shoulder 1
+            landmark[13], // left elbow 2
+            landmark[14], // right elbow 3
+            landmark[15], // left wrist 4
+            landmark[16], // right wrist 5
+            landmark[17], // left pinky 6
+            landmark[18], // right pinky 7
+            landmark[19], // left index 8
+            landmark[20], // right index 9
+            landmark[21], // left thumb 10
+            landmark[22], // right thumb 11
           ];
         });
+        const normalizedLeftWrist = reducedLandmarks[0][4];
+        const normalizedRightWrist = reducedLandmarks[0][5];
+
+        this.menu.onMenuEnter(normalizedLeftWrist.x, normalizedLeftWrist.y);
+        this.menu.onMenuEnter(normalizedRightWrist.x, normalizedRightWrist.y);
+
+        /*console.log(normalizedLeftWrist)*/
+
         for (const landmark of reducedLandmarks) {
           this.drawingUtils.drawLandmarks(landmark,  {
-            radius: 8,
+            radius: 4,
             color: 'purple',
           });
         }
@@ -202,5 +163,10 @@ export class AppComponent implements OnInit {
     const minCeiled = Math.ceil(min);
     const maxFloored = Math.floor(max);
     return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
+  }
+
+  drawMenu() {
+    console.log(this.menu.getCenterNormalized())
+    this.menu.drawAllElements();
   }
 }
