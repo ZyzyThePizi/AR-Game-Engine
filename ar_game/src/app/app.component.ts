@@ -30,6 +30,7 @@ export class AppComponent implements OnInit {
     label: 'Start objects',
     isMoving: false
   }
+  drawJoints = false;
 
   constructor(private toastr: ToastrService) {
     // init menu data
@@ -145,12 +146,13 @@ export class AppComponent implements OnInit {
         }
 
         /*console.log(normalizedLeftWrist)*/
-
-        for (const landmark of reducedLandmarks) {
-          this.drawingUtils.drawLandmarks(landmark,  {
-            radius: 4,
-            color: 'purple',
-          });
+        if (this.drawJoints) {
+          for (const landmark of reducedLandmarks) {
+            this.drawingUtils.drawLandmarks(landmark,  {
+              radius: 4,
+              color: 'purple',
+            });
+          }
         }
         this.baseCanvasCtx.restore();
       });
@@ -166,6 +168,8 @@ export class AppComponent implements OnInit {
     const maxFloored = Math.floor(max);
     return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
   }
+
+  setDrawJoints(){ this.drawJoints = !this.drawJoints; }
 
   startMenu() {
     console.log(gameController.menuController?.getCenterNormalized())
