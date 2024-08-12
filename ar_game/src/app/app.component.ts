@@ -1,12 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { ToastrService } from 'ngx-toastr';
-import {
-  PoseLandmarker,
-  FilesetResolver,
-  DrawingUtils
-} from '@mediapipe/tasks-vision';
-import { Menu } from "../Menu";
-import { MenuElement } from "../MenuElement";
+import {Component, OnInit} from '@angular/core';
+import {ToastrService} from 'ngx-toastr';
+import {DrawingUtils, FilesetResolver, PoseLandmarker} from '@mediapipe/tasks-vision';
+import {Menu} from "./menu/Menu";
+import {MenuElement} from "../interfaces/MenuElement";
+import {GameType} from "../DataTypes/GameTypes";
+import {gameController} from "../environments/environment";
 
 @Component({
   selector: 'app-root',
@@ -28,7 +26,6 @@ export class AppComponent implements OnInit {
   topCanvasCtx!: CanvasRenderingContext2D;
   drawingUtils!: DrawingUtils;
   squeres: MenuElement[];
-  menu: any;
   movingObjects = {
     label: 'Start objects',
     isMoving: false
@@ -36,10 +33,10 @@ export class AppComponent implements OnInit {
 
   constructor(private toastr: ToastrService) {
     // init menu data
-    this.squeres =[
-      { text: "Racer", color: "#50b8e7"},
-      { text: "Coin Collector", color: "#50b8e7"},
-      { text: "Balancer", color: "#50b8e7"}
+    this.squeres = [
+      { gameType: GameType.Racer, color: "#50b8e7"},
+      { gameType: GameType.CoinCollector, color: "#50b8e7"},
+      { gameType: GameType.Blazer, color: "#50b8e7"}
     ];
   }
 
@@ -59,7 +56,7 @@ export class AppComponent implements OnInit {
     this.topCanvas.height = this.videoHeight;
     this.video.style.height = this.videoHeight + "px";
     this.video.style.width = this.videoWidth + "px";
-    this.menu = new Menu(this.videoWidth, this.videoHeight, this.topCanvasCtx, this.squeres);
+    gameController.menuController = new Menu(this.videoWidth, this.videoHeight, this.topCanvasCtx, this.squeres);
   }
 
 
@@ -93,7 +90,7 @@ export class AppComponent implements OnInit {
       (event.target as HTMLButtonElement).innerText = "ENABLE PREDICTIONS";
     } else {
       this.webcamRunning = true;
-      setTimeout( () => { this.drawMenu(); }, 1000);
+      setTimeout( () => { this.startMenu(); }, 1000);
       (event.target as HTMLButtonElement).innerText = "DISABLE PREDICTIONS";
     }
 
@@ -136,11 +133,16 @@ export class AppComponent implements OnInit {
             landmark[22], // right thumb 11
           ];
         });
-        const normalizedLeftWrist = reducedLandmarks[0][4];
-        const normalizedRightWrist = reducedLandmarks[0][5];
 
-        this.menu.onMenuEnter(normalizedLeftWrist.x, normalizedLeftWrist.y);
-        this.menu.onMenuEnter(normalizedRightWrist.x, normalizedRightWrist.y);
+        if (!(reducedLandmarks[0] && reducedLandmarks[0][4] && reducedLandmarks[0][5])) return;
+        gameController.leftWrist = reducedLandmarks[0][4];
+        gameController.rightWrist = reducedLandmarks[0][5];
+
+        if (gameController.isInMenu) {
+          gameController.menuController?.onMenuEnter(gameController.leftWrist.x, gameController.leftWrist.y);
+          gameController.menuController?.onMenuEnter(gameController.rightWrist.x, gameController.rightWrist.y);
+          gameController.menuController?.onEnter(gameController.rightWrist.x, gameController.rightWrist.y);
+        }
 
         /*console.log(normalizedLeftWrist)*/
 
@@ -165,8 +167,8 @@ export class AppComponent implements OnInit {
     return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
   }
 
-  drawMenu() {
-    console.log(this.menu.getCenterNormalized())
-    this.menu.drawAllElements();
+  startMenu() {
+    console.log(gameController.menuController?.getCenterNormalized())
+    gameController.menuController?.drawMenu();
   }
 }
