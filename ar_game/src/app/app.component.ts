@@ -4,7 +4,7 @@ import {DrawingUtils, FilesetResolver, PoseLandmarker} from '@mediapipe/tasks-vi
 import {Menu} from "./menu/Menu";
 import {MenuElement} from "../interfaces/MenuElement";
 import {GameType} from "../DataTypes/GameTypes";
-import {gameController} from "../environments/environment";
+import { gameController } from "../environments/environment";
 
 @Component({
   selector: 'app-root',
@@ -26,17 +26,13 @@ export class AppComponent implements OnInit {
   topCanvasCtx!: CanvasRenderingContext2D;
   drawingUtils!: DrawingUtils;
   squeres: MenuElement[];
-  movingObjects = {
-    label: 'Start objects',
-    isMoving: false
-  }
   drawJoints = false;
 
   constructor(private toastr: ToastrService) {
     // init menu data
     this.squeres = [
       { gameType: GameType.Racer, color: "#50b8e7"},
-      { gameType: GameType.CoinCollector, color: "#50b8e7"},
+      { gameType: GameType.FallingStar, color: "#50b8e7"},
       { gameType: GameType.Blazer, color: "#50b8e7"}
     ];
   }
@@ -145,7 +141,6 @@ export class AppComponent implements OnInit {
           gameController.menuController?.onEnter(gameController.rightWrist.x, gameController.rightWrist.y);
         }
 
-        /*console.log(normalizedLeftWrist)*/
         if (this.drawJoints) {
           for (const landmark of reducedLandmarks) {
             this.drawingUtils.drawLandmarks(landmark,  {

@@ -2,7 +2,7 @@ import { MenuElement } from "../../interfaces/MenuElement";
 import { ObjectCoordinates } from "../../interfaces/ObjectCoordinates";
 import { GameType } from "../../DataTypes/GameTypes";
 import { gameController } from "../../environments/environment";
-import {CoinFlipper} from "../games/CoinFlipper";
+import { FallingStar } from "../games/FallingStar";
 
 export class Menu {
 
@@ -79,7 +79,6 @@ export class Menu {
 
     drawMenu() {
         this.drawHorizontalScroolbar();
-        this.drawEscape();
         this.drawEnter();
         gameController.isInMenu = true;
     }
@@ -159,10 +158,10 @@ export class Menu {
         switch (this.menuList[this.centerIndex].gameType){
             case GameType.Racer:
                 break
-            case GameType.CoinCollector:
+            case GameType.FallingStar:
                 gameController.isInGame = true;
                 gameController.isInMenu = false;
-                this.game = new CoinFlipper(this.cvWidth, this.cvHeight, this.ctx);
+                this.game = new FallingStar(this.cvWidth, this.cvHeight, this.ctx);
                 break
             case GameType.Blazer:
                 break

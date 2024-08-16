@@ -2,59 +2,79 @@ import {gameController} from "../../environments/environment";
 import {GameType} from "../../DataTypes/GameTypes";
 import {ObjectCoordinates} from "../../interfaces/ObjectCoordinates";
 
-export class CoinFlipper {
+export class FallingStar {
 
     private cvWidth: number;
     private cvHeight: number;
     private ctx: any;
+    private timerCanvas: HTMLCanvasElement;
+    private timerCtx: any;
     private currentx = 0;
     private isEscInAction = false;
     private intervalId = null as NodeJS.Timeout | null;
+    private timerInterval = null as NodeJS.Timeout | null;
 
     constructor(cvWidth: number, cvHeight: number, ctx: any) {
         this.cvWidth = cvWidth;
         this.cvHeight = cvHeight;
         this.ctx = ctx;
 
+        this.timerCanvas = document.createElement("canvas");
+        this.timerCanvas.width = this.cvWidth;
+        this.timerCanvas.height = this.cvHeight * 0.15;
+        this.timerCanvas.style.position = "absolute";
+        this.timerCanvas.style.top = "0";
+        this.timerCanvas.style.left = "0";
+        document.getElementById('container')?.appendChild(this.timerCanvas);
+
+        // Timer canvas context
+        this.timerCtx = this.timerCanvas.getContext("2d")!;
+
         this.initGame();
     }
 
     initGame(){
         this.ctx.clearRect(0,0, this.cvWidth, this.cvHeight);
-        this.drawGame();
+        this.startTimer();
         gameController.menuController?.drawEscape();
         this.checkExit();
     }
 
-    drawGame(){
-        this.ctx.beginPath();
-        this.ctx.roundRect(this.cvWidth / 2 - 125, this.cvHeight / 4 - 50, 250, 100,[10]);
-        this.ctx.fillStyle = '#e78b04';
-        this.ctx.fill();
-        this.ctx.closePath();
+    startTimer(){
+        let timer = 11;
+        this.timerInterval = setInterval(() => {
+            this.timerCtx.clearRect(0, 0, this.timerCanvas.width, this.timerCanvas.height);
+            this.timerCtx.beginPath();
+            this.timerCtx.roundRect(this.cvWidth / 2 - 75, this.timerCanvas.height / 2 - 50, 150, 100, [10]);
+            this.timerCtx.fillStyle = "rgba(168,162,162,0.15)";
+            this.timerCtx.fill();
+            this.timerCtx.closePath();
 
-        this.ctx.fillStyle = "#FFFFFF";
-        this.ctx.font = "bold 20pt Arial";
-        this.ctx.textAlign = "center";
-        this.ctx.textBaseline = "middle";
-        this.ctx.fillText( GameType.CoinCollector, this.cvWidth / 2, this.cvHeight / 4)
+            this.timerCtx.fillStyle = "#FFFFFF";
+            this.timerCtx.font = "bold 20pt Arial";
+            this.timerCtx.textAlign = "center";
+            this.timerCtx.textBaseline = "middle";
+            timer = --timer;
+            this.timerCtx.fillText(timer.toString(), this.cvWidth / 2, this.timerCanvas.height / 2);
+
+            if (timer == 0) {
+                clearInterval(this.timerInterval as NodeJS.Timeout);
+                this.exitGame()
+            }
+        },1000)
+
     }
 
     checkExit() {
 
         const normalizedCircle = this.getNormalizedCircle(50, this.cvHeight - 50, 40);
-        console.log(gameController)
         this.intervalId = setInterval(()=> {
             if(!gameController.leftWrist) return;
             this.currentx = (gameController.leftWrist.x * -1) + 1;
 
-            const isInElement = (((gameController.leftWrist.x * -1) + 1) <= normalizedCircle.max.x
-                    && ((gameController.leftWrist.x * -1) + 1) >= normalizedCircle.min.x)
+            const isInElement = (this.currentx <= normalizedCircle.max.x
+                    && this.currentx >= normalizedCircle.min.x)
                 && (gameController.leftWrist.y <= normalizedCircle.max.y && gameController.leftWrist.y >= normalizedCircle.min.y);
-
-            console.log(this.currentx);
-            console.log(normalizedCircle)
-
 
             if (!isInElement || this.isEscInAction) return;
             else {
@@ -67,19 +87,23 @@ export class CoinFlipper {
         }, 10);
     }
 
-    exitGame(x: number) {
-        if(!gameController.leftWrist) return;
+    exitGame(x: number = 0) {
         if(!gameController.menuController) return;
+        if (x != 0) {
+            if(!gameController.leftWrist) return;
 
-        const normalizedCircle = this.getNormalizedCircle(50, this.cvHeight - 50, 40)
+            const normalizedCircle = this.getNormalizedCircle(50, this.cvHeight - 50, 40)
 
-        const isInElement = ((x <= normalizedCircle.max.x && x >= normalizedCircle.min.x)
-            && (gameController.leftWrist.y <= normalizedCircle.max.y && gameController.leftWrist.y >= normalizedCircle.min.y));
+            const isInElement = ((x <= normalizedCircle.max.x && x >= normalizedCircle.min.x)
+                && (gameController.leftWrist.y <= normalizedCircle.max.y && gameController.leftWrist.y >= normalizedCircle.min.y));
 
-        if (!isInElement) return;
+            if (!isInElement) return;
+        }
 
         this.ctx.clearRect(0,0, this.cvWidth, this.cvHeight);
+        this.timerCtx.clearRect(0, 0, this.timerCanvas.width, this.timerCanvas.height);
         clearInterval(this.intervalId as NodeJS.Timeout);
+        clearInterval(this.timerInterval as NodeJS.Timeout);
         gameController.isInGame = false;
         gameController.menuController?.drawMenu();
         // garbage collector

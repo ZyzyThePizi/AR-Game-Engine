@@ -1,5 +1,5 @@
 export enum GameType {
     Racer = "Racer",
-    CoinCollector = "Coin Collector",
+    FallingStar = "Falling Star",
     Blazer = "Blazer"
 }
