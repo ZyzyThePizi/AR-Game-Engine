@@ -14,7 +14,8 @@ export const gameController = {
   isInGame: false,
   menuController: null as Menu | null,
   leftWrist: null as NormalizedLandmark | null,
-  rightWrist: null as NormalizedLandmark | null
+  rightWrist: null as NormalizedLandmark | null,
+  score: 0
 };
 
 /*

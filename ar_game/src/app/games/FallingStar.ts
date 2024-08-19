@@ -1,6 +1,7 @@
 import {gameController} from "../../environments/environment";
 import {GameType} from "../../DataTypes/GameTypes";
 import {ObjectCoordinates} from "../../interfaces/ObjectCoordinates";
+import {Sphere} from "./Sphere";
 
 export class FallingStar {
 
@@ -13,6 +14,8 @@ export class FallingStar {
     private isEscInAction = false;
     private intervalId = null as NodeJS.Timeout | null;
     private timerInterval = null as NodeJS.Timeout | null;
+    private sphereFriendly: any = null;
+    private sphereNonFriendly: any = null;
 
     constructor(cvWidth: number, cvHeight: number, ctx: any) {
         this.cvWidth = cvWidth;
@@ -35,15 +38,14 @@ export class FallingStar {
 
     initGame(){
         this.ctx.clearRect(0,0, this.cvWidth, this.cvHeight);
-        this.startTimer();
-        gameController.menuController?.drawEscape();
+        this.drawGame();
         this.checkExit();
     }
 
     startTimer(){
-        let timer = 11;
+        let timer = 30;
         this.timerInterval = setInterval(() => {
-            this.timerCtx.clearRect(0, 0, this.timerCanvas.width, this.timerCanvas.height);
+            this.timerCtx.clearRect(this.cvWidth / 2 - 75, 0, 150, this.timerCanvas.height);
             this.timerCtx.beginPath();
             this.timerCtx.roundRect(this.cvWidth / 2 - 75, this.timerCanvas.height / 2 - 50, 150, 100, [10]);
             this.timerCtx.fillStyle = "rgba(168,162,162,0.15)";
@@ -54,8 +56,8 @@ export class FallingStar {
             this.timerCtx.font = "bold 20pt Arial";
             this.timerCtx.textAlign = "center";
             this.timerCtx.textBaseline = "middle";
-            timer = --timer;
-            this.timerCtx.fillText(timer.toString(), this.cvWidth / 2, this.timerCanvas.height / 2);
+            --timer;
+            this.timerCtx.fillText(timer, this.cvWidth / 2, this.timerCanvas.height / 2);
 
             if (timer == 0) {
                 clearInterval(this.timerInterval as NodeJS.Timeout);
@@ -106,8 +108,12 @@ export class FallingStar {
         clearInterval(this.timerInterval as NodeJS.Timeout);
         gameController.isInGame = false;
         gameController.menuController?.drawMenu();
+        this.sphereFriendly.stopSphere();
+        this.sphereNonFriendly.stopSphere();
         // garbage collector
         gameController.menuController.game = null;
+        this.sphereFriendly = null;
+        this.sphereNonFriendly = null;
     }
 
     getNormalizedCircle(center_x: number, center_y: number, radius: number): ObjectCoordinates {
@@ -132,6 +138,31 @@ export class FallingStar {
             center: center
         };
 
+    }
+
+    setScoreBoard(): void {
+        this.timerCtx.clearRect(this.cvWidth - 100, 0, 100, 100);
+        this.timerCtx.beginPath();
+        this.timerCtx.roundRect(this.cvWidth - 100, this.timerCanvas.height / 2 - 50, 100, 100, [15]);
+        this.timerCtx.fillStyle = "rgba(255,234,0,0.09)";
+        this.timerCtx.fill();
+        this.timerCtx.closePath();
+
+        this.timerCtx.fillStyle = "#FFFFFF";
+        this.timerCtx.font = "bold 10pt Arial";
+        this.timerCtx.textAlign = "center";
+        this.timerCtx.textBaseline = "middle";
+        this.timerCtx.fillText("Score: " + gameController.score, this.cvWidth - 50, this.timerCanvas.height / 2);
+    }
+
+    drawGame(): void {
+        gameController.menuController?.drawEscape();
+        this.startTimer();
+        this.sphereFriendly = new Sphere(this.cvWidth, this.cvHeight, true, this.ctx);
+        setTimeout(() => {
+            this.sphereNonFriendly = new Sphere(this.cvWidth, this.cvHeight, false, this.ctx);
+        }, 200)
+        this.setScoreBoard();
     }
 
 }
