@@ -14,6 +14,7 @@ export class FallingStar {
     private isEscInAction = false;
     private intervalId = null as NodeJS.Timeout | null;
     private timerInterval = null as NodeJS.Timeout | null;
+    private detectCollison = null as number | null;
     private sphereFriendly: any = null;
     private sphereNonFriendly: any = null;
 
@@ -40,6 +41,29 @@ export class FallingStar {
         this.ctx.clearRect(0,0, this.cvWidth, this.cvHeight);
         this.drawGame();
         this.checkExit();
+        this.checkCollison();
+    }
+
+    checkCollison() {
+        if (!gameController.leftWrist || !gameController.rightWrist) return;
+        let friendly = this.sphereFriendly.getNormalizedSphere();
+        let lWrist = (gameController.leftWrist.x * -1) + 1;
+        let rWrist = (gameController.rightWrist.x * -1) + 1;
+
+        let isInSphereFriendly = ((friendly.min.x <= lWrist
+            && friendly.max.x >= lWrist) && (friendly.min.y <= gameController.leftWrist?.y
+            && friendly.max.y >= gameController.leftWrist?.y)) || ((friendly.min.x <= rWrist
+            && friendly.max.x >= rWrist) && (friendly.min.y <= gameController.rightWrist?.y
+            && friendly.max.y >= gameController.rightWrist?.y))
+
+        if (isInSphereFriendly) {
+            gameController.score += 100;
+            this.setScoreBoard();
+            this.sphereFriendly.resetSphere();
+        }
+        this.detectCollison = requestAnimationFrame(() => {
+            this.checkCollison();
+        })
     }
 
     startTimer(){
@@ -106,6 +130,7 @@ export class FallingStar {
         this.timerCtx.clearRect(0, 0, this.timerCanvas.width, this.timerCanvas.height);
         clearInterval(this.intervalId as NodeJS.Timeout);
         clearInterval(this.timerInterval as NodeJS.Timeout);
+        cancelAnimationFrame(this.detectCollison as number);
         gameController.isInGame = false;
         gameController.menuController?.drawMenu();
         this.sphereFriendly.stopSphere();

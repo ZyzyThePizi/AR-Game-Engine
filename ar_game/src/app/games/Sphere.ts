@@ -1,3 +1,5 @@
+import {ObjectCoordinates} from "../../interfaces/ObjectCoordinates";
+
 export class Sphere {
 
     private cvWidth: number;
@@ -64,10 +66,40 @@ export class Sphere {
         });
     }
 
+    resetSphere() {
+        this.ctx.clearRect(this.current_x - this.radius-1, this.current_y - this.radius-1, 42, 42);
+        this.current_y = -this.radius;
+        this.current_x = this.getRandomInt(20, this.cvWidth - 20);
+    }
+
     getRandomInt(min: number, max: number) {
         const minCeiled = Math.ceil(min);
         const maxFloored = Math.floor(max);
         return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); // The maximum is exclusive and the minimum is inclusive
+    }
+
+    getNormalizedSphere(): ObjectCoordinates {
+        const min = {
+            x: (this.current_x - this.radius) / this.cvWidth,
+            y: (this.current_y - this.radius) / this.cvHeight
+        };
+
+        const max = {
+            x: (this.current_x + this.radius) / this.cvWidth,
+            y: (this.current_y + this.radius) / this.cvHeight
+        };
+
+        const center = {
+            x: this.current_x / this.cvWidth,
+            y: this.current_y / this.cvHeight
+        };
+
+        return {
+            min: min,
+            max: max,
+            center: center
+        };
+
     }
 
 }

@@ -116,8 +116,7 @@ export class Menu {
 
         const isInElement = (x <= normalizedCircle.max.x && x >= normalizedCircle.min.x)
             && (y <= normalizedCircle.max.y && y >= normalizedCircle.min.y);
-        console.log(normalizedCircle)
-        console.log(x, y)
+
         if (!isInElement || this.isEnterInAction) return;
         else {
             this.isEnterInAction = true;
