@@ -2,6 +2,7 @@ import {gameController} from "../../environments/environment";
 import {GameType} from "../../DataTypes/GameTypes";
 import {ObjectCoordinates} from "../../interfaces/ObjectCoordinates";
 import {Sphere} from "./Sphere";
+import {NormalizedLandmark} from "@mediapipe/tasks-vision";
 
 export class FallingStar {
 
@@ -39,35 +40,61 @@ export class FallingStar {
 
     initGame(){
         this.ctx.clearRect(0,0, this.cvWidth, this.cvHeight);
+        gameController.score = 0;
         this.drawGame();
-        this.checkExit();
         this.checkCollison();
     }
 
     checkCollison() {
-        if (!gameController.leftWrist || !gameController.rightWrist) return;
-        let friendly = this.sphereFriendly.getNormalizedSphere();
-        let lWrist = (gameController.leftWrist.x * -1) + 1;
-        let rWrist = (gameController.rightWrist.x * -1) + 1;
+        if (!gameController.leftWrist || !gameController.rightWrist
+            || !gameController.leftShoulder || !gameController.rightShoulder ) return;
 
-        let isInSphereFriendly = ((friendly.min.x <= lWrist
-            && friendly.max.x >= lWrist) && (friendly.min.y <= gameController.leftWrist?.y
-            && friendly.max.y >= gameController.leftWrist?.y)) || ((friendly.min.x <= rWrist
-            && friendly.max.x >= rWrist) && (friendly.min.y <= gameController.rightWrist?.y
-            && friendly.max.y >= gameController.rightWrist?.y))
+        let friendly = this.sphereFriendly.getNormalizedSphere();
+
+
+        let shoulder = this.getNormalizedShoulders(gameController.leftShoulder, gameController.rightShoulder);
+
+        const wristRadius = 0.05;
+        let leftWristCircle = this.getNormalizedWristCircle(
+            (gameController.leftWrist.x * -1) + 1,
+            gameController.leftWrist.y,
+            wristRadius
+        );
+
+        let rightWristCircle = this.getNormalizedWristCircle(
+            (gameController.rightWrist.x * -1) + 1,
+            gameController.rightWrist.y,
+            wristRadius
+        );
+
+        let isInSphereFriendly = this.isCircleOverlap(friendly, leftWristCircle)
+            || this.isCircleOverlap(friendly, rightWristCircle);
 
         if (isInSphereFriendly) {
             gameController.score += 100;
             this.setScoreBoard();
             this.sphereFriendly.resetSphere();
         }
+
+        if(this.sphereNonFriendly != null) {
+            let nonFriendly = this.sphereNonFriendly.getNormalizedSphere();
+
+            let isInShoulderCollision = this.isCircleOverlapWithRectangle(nonFriendly, shoulder);
+
+            if (isInShoulderCollision) {
+                gameController.score -= 200;
+                this.setScoreBoard();
+                this.sphereNonFriendly.resetSphere();
+            }
+        }
+
         this.detectCollison = requestAnimationFrame(() => {
             this.checkCollison();
-        })
+        });
     }
 
     startTimer(){
-        let timer = 30;
+        let timer = 10;
         this.timerInterval = setInterval(() => {
             this.timerCtx.clearRect(this.cvWidth / 2 - 75, 0, 150, this.timerCanvas.height);
             this.timerCtx.beginPath();
@@ -91,7 +118,7 @@ export class FallingStar {
 
     }
 
-    checkExit() {
+    /*checkExit() {
 
         const normalizedCircle = this.getNormalizedCircle(50, this.cvHeight - 50, 40);
         this.intervalId = setInterval(()=> {
@@ -111,10 +138,9 @@ export class FallingStar {
                 }, 1500);
             }
         }, 10);
-    }
+    }*/
 
     exitGame(x: number = 0) {
-        if(!gameController.menuController) return;
         if (x != 0) {
             if(!gameController.leftWrist) return;
 
@@ -131,14 +157,19 @@ export class FallingStar {
         clearInterval(this.intervalId as NodeJS.Timeout);
         clearInterval(this.timerInterval as NodeJS.Timeout);
         cancelAnimationFrame(this.detectCollison as number);
-        gameController.isInGame = false;
-        gameController.menuController?.drawMenu();
         this.sphereFriendly.stopSphere();
         this.sphereNonFriendly.stopSphere();
-        // garbage collector
-        gameController.menuController.game = null;
-        this.sphereFriendly = null;
-        this.sphereNonFriendly = null;
+        this.showGameResults();
+        setTimeout(()=> {
+            this.ctx.clearRect(0,0, this.cvWidth, this.cvHeight)
+            if(!gameController.menuController) return;
+            gameController.isInGame = false;
+            gameController.menuController?.drawMenu();
+            // garbage collector
+            gameController.menuController.game = null;
+            this.sphereFriendly = null;
+            this.sphereNonFriendly = null;
+        },5000)
     }
 
     getNormalizedCircle(center_x: number, center_y: number, radius: number): ObjectCoordinates {
@@ -165,6 +196,98 @@ export class FallingStar {
 
     }
 
+    getNormalizedWristCircle(centerX: number, centerY: number, radius: number): ObjectCoordinates {
+        const min = {
+            x: centerX - radius,
+            y: centerY - radius
+        };
+
+        const max = {
+            x: centerX + radius,
+            y: centerY + radius
+        };
+
+        const center = {
+            x: centerX,
+            y: centerY
+        };
+
+        return {
+            min: min,
+            max: max,
+            center: center
+        };
+    }
+
+    getNormalizedShoulders(minBase: NormalizedLandmark, maxBase:NormalizedLandmark): ObjectCoordinates {
+        minBase.x = (minBase.x * -1) + 1;
+        maxBase.x = (maxBase.x * -1) + 1;
+
+        const min = {
+            x: minBase.x,
+            y: minBase.y - 0.05
+        };
+
+        const max = {
+            x: maxBase.x,
+            y: maxBase.y + 0.05
+        };
+
+        const center = {
+            x: (maxBase.x - minBase.x) / 2,
+            y: (maxBase.y - minBase.y) / 2
+        };
+
+        return {
+            min: min,
+            max: max,
+            center: center
+        };
+    }
+
+    isCircleOverlap(circle1: ObjectCoordinates, circle2: ObjectCoordinates): boolean {
+        const dx = circle1.center.x - circle2.center.x;
+        const dy = circle1.center.y - circle2.center.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const radiusSum = (circle1.max.x - circle1.center.x) + (circle2.max.x - circle2.center.x);
+        return distance < radiusSum;
+    }
+
+    isCircleOverlapWithRectangle(circle: ObjectCoordinates, rect: ObjectCoordinates): boolean {
+        const circleCenterX = circle.center.x;
+        const circleCenterY = circle.center.y;
+        const circleRadius = circle.max.x - circle.center.x;
+
+        if (circleCenterX > rect.min.x && circleCenterX < rect.max.x &&
+            circleCenterY > rect.min.y && circleCenterY < rect.max.y) {
+            return true;
+        }
+
+        const closestX = Math.max(rect.min.x, Math.min(circleCenterX, rect.max.x));
+        const closestY = Math.max(rect.min.y, Math.min(circleCenterY, rect.max.y));
+
+        const dx = circleCenterX - closestX;
+        const dy = circleCenterY - closestY;
+
+        return (dx * dx + dy * dy) < (circleRadius * circleRadius);
+    }
+
+    showGameResults() {
+        this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
+        this.ctx.beginPath();
+        this.ctx.roundRect(this.cvWidth / 2 - 225, this.cvHeight / 2 - 150 , 450, 300, [15]);
+        this.ctx.fillStyle = "rgba(255,99,0,0.65)";
+        this.ctx.fill();
+        this.ctx.closePath();
+
+        this.ctx.fillStyle = "#FFFFFF";
+        this.ctx.font = "bold 25pt Arial";
+        this.ctx.textAlign = "center";
+        this.ctx.textBaseline = "middle";
+        this.ctx.fillText("Megszerzett pontok: " + gameController.score, this.cvWidth / 2, this.cvHeight / 2);
+    }
+
     setScoreBoard(): void {
         this.timerCtx.clearRect(this.cvWidth - 100, 0, 100, 100);
         this.timerCtx.beginPath();
@@ -177,11 +300,10 @@ export class FallingStar {
         this.timerCtx.font = "bold 10pt Arial";
         this.timerCtx.textAlign = "center";
         this.timerCtx.textBaseline = "middle";
-        this.timerCtx.fillText("Score: " + gameController.score, this.cvWidth - 50, this.timerCanvas.height / 2);
+        this.timerCtx.fillText("Pontok: " + gameController.score, this.cvWidth - 50, this.timerCanvas.height / 2);
     }
 
     drawGame(): void {
-        gameController.menuController?.drawEscape();
         this.startTimer();
         this.sphereFriendly = new Sphere(this.cvWidth, this.cvHeight, true, this.ctx);
         setTimeout(() => {

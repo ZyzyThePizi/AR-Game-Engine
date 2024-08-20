@@ -131,9 +131,11 @@ export class AppComponent implements OnInit {
           ];
         });
 
-        if (!(reducedLandmarks[0] && reducedLandmarks[0][4] && reducedLandmarks[0][5])) return;
+        if (!reducedLandmarks[0]) return;
         gameController.leftWrist = reducedLandmarks[0][4];
         gameController.rightWrist = reducedLandmarks[0][5];
+        gameController.leftShoulder = reducedLandmarks[0][0];
+        gameController.rightShoulder = reducedLandmarks[0][1];
 
         if (gameController.isInMenu) {
           gameController.menuController?.onMenuEnter(gameController.leftWrist.x, gameController.leftWrist.y);
