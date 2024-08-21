@@ -1,8 +1,7 @@
 import {gameController} from "../../environments/environment";
-import {GameType} from "../../DataTypes/GameTypes";
 import {ObjectCoordinates} from "../../interfaces/ObjectCoordinates";
 import {Sphere} from "./Sphere";
-import {NormalizedLandmark} from "@mediapipe/tasks-vision";
+import * as normalizationUtils from "../../utils/normalizationMethods";
 
 export class FallingStar {
 
@@ -11,8 +10,6 @@ export class FallingStar {
     private ctx: any;
     private timerCanvas: HTMLCanvasElement;
     private timerCtx: any;
-    private currentx = 0;
-    private isEscInAction = false;
     private intervalId = null as NodeJS.Timeout | null;
     private timerInterval = null as NodeJS.Timeout | null;
     private detectCollison = null as number | null;
@@ -51,17 +48,16 @@ export class FallingStar {
 
         let friendly = this.sphereFriendly.getNormalizedSphere();
 
-
-        let shoulder = this.getNormalizedShoulders(gameController.leftShoulder, gameController.rightShoulder);
+        let shoulder = normalizationUtils.getNormalizedShoulders();
 
         const wristRadius = 0.05;
-        let leftWristCircle = this.getNormalizedWristCircle(
+        let leftWristCircle = normalizationUtils.getNormalizedWristCircle(
             (gameController.leftWrist.x * -1) + 1,
             gameController.leftWrist.y,
             wristRadius
         );
 
-        let rightWristCircle = this.getNormalizedWristCircle(
+        let rightWristCircle = normalizationUtils.getNormalizedWristCircle(
             (gameController.rightWrist.x * -1) + 1,
             gameController.rightWrist.y,
             wristRadius
@@ -94,7 +90,7 @@ export class FallingStar {
     }
 
     startTimer(){
-        let timer = 10;
+        let timer = 60;
         this.timerInterval = setInterval(() => {
             this.timerCtx.clearRect(this.cvWidth / 2 - 75, 0, 150, this.timerCanvas.height);
             this.timerCtx.beginPath();
@@ -118,33 +114,12 @@ export class FallingStar {
 
     }
 
-    /*checkExit() {
-
-        const normalizedCircle = this.getNormalizedCircle(50, this.cvHeight - 50, 40);
-        this.intervalId = setInterval(()=> {
-            if(!gameController.leftWrist) return;
-            this.currentx = (gameController.leftWrist.x * -1) + 1;
-
-            const isInElement = (this.currentx <= normalizedCircle.max.x
-                    && this.currentx >= normalizedCircle.min.x)
-                && (gameController.leftWrist.y <= normalizedCircle.max.y && gameController.leftWrist.y >= normalizedCircle.min.y);
-
-            if (!isInElement || this.isEscInAction) return;
-            else {
-                this.isEscInAction = true;
-                setTimeout(()=> {
-                    this.exitGame(this.currentx);
-                    this.isEscInAction = false;
-                }, 1500);
-            }
-        }, 10);
-    }*/
-
     exitGame(x: number = 0) {
         if (x != 0) {
             if(!gameController.leftWrist) return;
 
-            const normalizedCircle = this.getNormalizedCircle(50, this.cvHeight - 50, 40)
+            const normalizedCircle = normalizationUtils.getNormalizedCircle(50,
+                this.cvHeight - 50, 40, this.cvWidth, this.cvHeight)
 
             const isInElement = ((x <= normalizedCircle.max.x && x >= normalizedCircle.min.x)
                 && (gameController.leftWrist.y <= normalizedCircle.max.y && gameController.leftWrist.y >= normalizedCircle.min.y));
@@ -170,79 +145,6 @@ export class FallingStar {
             this.sphereFriendly = null;
             this.sphereNonFriendly = null;
         },5000)
-    }
-
-    getNormalizedCircle(center_x: number, center_y: number, radius: number): ObjectCoordinates {
-        const min = {
-            x: (center_x - radius) / this.cvWidth,
-            y: (center_y - radius) / this.cvHeight
-        };
-
-        const max = {
-            x: (center_x + radius) / this.cvWidth,
-            y: (center_y + radius) / this.cvHeight
-        };
-
-        const center = {
-            x: center_x / this.cvWidth,
-            y: center_y / this.cvHeight
-        };
-
-        return {
-            min: min,
-            max: max,
-            center: center
-        };
-
-    }
-
-    getNormalizedWristCircle(centerX: number, centerY: number, radius: number): ObjectCoordinates {
-        const min = {
-            x: centerX - radius,
-            y: centerY - radius
-        };
-
-        const max = {
-            x: centerX + radius,
-            y: centerY + radius
-        };
-
-        const center = {
-            x: centerX,
-            y: centerY
-        };
-
-        return {
-            min: min,
-            max: max,
-            center: center
-        };
-    }
-
-    getNormalizedShoulders(minBase: NormalizedLandmark, maxBase:NormalizedLandmark): ObjectCoordinates {
-        minBase.x = (minBase.x * -1) + 1;
-        maxBase.x = (maxBase.x * -1) + 1;
-
-        const min = {
-            x: minBase.x,
-            y: minBase.y - 0.05
-        };
-
-        const max = {
-            x: maxBase.x,
-            y: maxBase.y + 0.05
-        };
-
-        const center = {
-            x: (maxBase.x - minBase.x) / 2,
-            y: (maxBase.y - minBase.y) / 2
-        };
-
-        return {
-            min: min,
-            max: max,
-            center: center
-        };
     }
 
     isCircleOverlap(circle1: ObjectCoordinates, circle2: ObjectCoordinates): boolean {

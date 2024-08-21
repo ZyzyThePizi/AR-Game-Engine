@@ -1,8 +1,8 @@
 import { MenuElement } from "../../interfaces/MenuElement";
-import { ObjectCoordinates } from "../../interfaces/ObjectCoordinates";
 import { GameType } from "../../DataTypes/GameTypes";
 import { gameController } from "../../environments/environment";
 import { FallingStar } from "../games/FallingStar";
+import * as normalizationUtils from "../../utils/normalizationMethods";
 
 export class Menu {
 
@@ -16,10 +16,11 @@ export class Menu {
     private currentx: number = 0 ;
     private currenty: number = 0 ;
 
-    private menuHeight: number;
-    private squereHeight: number;
-    private squereWidth: number;
-    private centerIndex: number;
+    private readonly menuHeight = 150;
+    private readonly squereHeight = 100;
+    private readonly squereWidth = 200;
+
+    private centerIndex= 1;
     private enterButtonCenterX: number;
     private enterButtonCenterY: number;
     private enterButtonRadius: number = 40;
@@ -35,29 +36,9 @@ export class Menu {
         this.menuList = menuList;
         this.ctx = ctx;
 
-        this.centerIndex = 1;
-        this.menuHeight = 150;
-        this.squereHeight = 100;
-        this.squereWidth = 200;
         this.centerX = this.cvWidth / 2 - this.squereWidth / 2;
         this.enterButtonCenterX = this.cvWidth - 50;
         this.enterButtonCenterY = this.cvHeight - 50;
-    }
-
-    drawEscape(): void{
-        this.ctx.beginPath();
-        this.ctx.arc(50, this.cvHeight-50, 40, 0, 2 * Math.PI);
-        this.ctx.fillStyle = "#e32636";
-        this.ctx.fill();
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeStyle = "black";
-        this.ctx.stroke()
-
-        this.ctx.fillStyle = "#FFFFFF";
-        this.ctx.font = "bold 35pt Arial";
-        this.ctx.textAlign = "center";
-        this.ctx.textBaseline = "middle";
-        this.ctx.fillText('X', 50, this.cvHeight - 50);
     }
 
     drawEnter(): void{
@@ -106,13 +87,13 @@ export class Menu {
         }
     }
 
-    onEnter(x:number, y:number){
+    onEnter(x: number, y: number){
         x = (x * -1) + 1;
         this.currentx = x;
         this.currenty = y;
 
-        const normalizedCircle = this.getNormalizedCircle(this.enterButtonCenterX,
-            this.enterButtonCenterY, this.enterButtonRadius)
+        const normalizedCircle = normalizationUtils.getNormalizedCircleMenu(this.menuHeight,this.enterButtonCenterX,
+            this.enterButtonCenterY, this.enterButtonRadius, this.squereHeight, this.cvWidth, this.cvHeight)
 
         const isInElement = (x <= normalizedCircle.max.x && x >= normalizedCircle.min.x)
             && (y <= normalizedCircle.max.y && y >= normalizedCircle.min.y);
@@ -132,8 +113,11 @@ export class Menu {
         this.currentx = x;
         this.currenty = y;
 
-        const isInMiddleElement = (x <= this.getCenterNormalized().max.x && x >= this.getCenterNormalized().min.x)
-            && (y <= this.getCenterNormalized().max.y && y >= this.getCenterNormalized().min.y);
+        const rectangle = normalizationUtils.getCenterNormalized(this.menuHeight, this.squereHeight,
+            this.squereWidth, this.cvWidth, this.cvHeight, this.centerX)
+
+        const isInMiddleElement = (x <= rectangle.max.x && x >= rectangle.min.x)
+            && (y <= rectangle.max.y && y >= rectangle.min.y);
 
         if (!isInMiddleElement || this.isScrolling) return;
         else {
@@ -146,8 +130,8 @@ export class Menu {
     }
 
     initGame(x: number, y: number) {
-        const normalizedCircle = this.getNormalizedCircle(this.enterButtonCenterX,
-            this.enterButtonCenterY, this.enterButtonRadius)
+        const normalizedCircle = normalizationUtils.getNormalizedCircleMenu(this.menuHeight,this.enterButtonCenterX,
+            this.enterButtonCenterY, this.enterButtonRadius, this.squereHeight, this.cvWidth, this.cvHeight)
 
         const isInElement = (x <= normalizedCircle.max.x && x >= normalizedCircle.min.x)
             && (y <= normalizedCircle.max.y && y >= normalizedCircle.min.y);
@@ -171,10 +155,13 @@ export class Menu {
     }
 
    private onScroll(x:number){
-        if (x < this.getCenterNormalized().center.x) {
+       const rectangle = normalizationUtils.getCenterNormalized(this.menuHeight, this.squereHeight,
+           this.squereWidth, this.cvWidth, this.cvHeight, this.centerX)
+
+        if (x < rectangle.center.x) {
             this.onLeftScroll();
         }
-        else if(x > this.getCenterNormalized().center.x) {
+        else if(x > rectangle.center.x) {
             this.onRightScroll();
         }
     }
@@ -199,57 +186,4 @@ export class Menu {
         }
        this.drawHorizontalScroolbar();
    }
-
-
-     getCenterNormalized(): ObjectCoordinates{
-        const centerY = (this.menuHeight - this.squereHeight) / 2;
-
-        const min = {
-            x: this.centerX / this.cvWidth,
-            y: centerY / this.cvHeight
-        };
-
-        const max = {
-            x: (this.centerX + this.squereWidth) / this.cvWidth,
-            y: (centerY + this.squereHeight) / this.cvHeight
-        };
-
-        const center = {
-            x: (this.centerX + this.squereWidth / 2) / this.cvWidth,
-            y: (centerY + this.squereHeight / 2) / this.cvHeight
-        };
-
-        return {
-            min: min,
-            max: max,
-            center: center
-        };
-
-    }
-
-    getNormalizedCircle(center_x: number, center_y: number, radius: number): ObjectCoordinates {
-        const centerY = (this.menuHeight - this.squereHeight) / 2;
-
-        const min = {
-            x: (center_x - radius) / this.cvWidth,
-            y: (center_y - radius) / this.cvHeight
-        };
-
-        const max = {
-            x: (center_x + radius) / this.cvWidth,
-            y: (center_y + radius) / this.cvHeight
-        };
-
-        const center = {
-            x: center_x / this.cvWidth,
-            y: centerY / this.cvHeight
-        };
-
-        return {
-            min: min,
-            max: max,
-            center: center
-        };
-
-    }
 }

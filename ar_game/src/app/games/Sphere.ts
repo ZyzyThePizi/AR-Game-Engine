@@ -1,4 +1,5 @@
 import {ObjectCoordinates} from "../../interfaces/ObjectCoordinates";
+import * as normalizationUtils from "../../utils/normalizationMethods";
 
 export class Sphere {
 
@@ -6,24 +7,25 @@ export class Sphere {
     private cvHeight: number;
     private ctx: any;
 
-    private radius = 20;
+    private radius = 30;
     private speed: number;
-
-    private isFriendly: boolean;
 
     private current_y = -this.radius;
     private current_x: number;
 
     private animationNumber: any = null;
+    private image: HTMLImageElement;
 
     constructor(cvWidth: number, cvHeight: number, isFriendly: boolean ,ctx: any) {
         this.cvWidth = cvWidth;
         this.cvHeight = cvHeight;
         this.ctx = ctx;
-        this.isFriendly = isFriendly;
 
-        this.current_x = this.getRandomInt(20, this.cvWidth - 20);
-        this.speed = isFriendly ? 3 : 2 ;
+        this.current_x = this.getRandomInt(30, this.cvWidth - 30);
+        this.speed = isFriendly ? 2 : 1.2 ;
+
+        this.image = new Image();
+        this.image.src = isFriendly ? 'assets/friendlyPackage.svg' : 'assets/nonFriendlyVirus.svg';
 
         this.startSphere();
     }
@@ -36,13 +38,7 @@ export class Sphere {
     }
 
     drawSphere() {
-            this.ctx.beginPath();
-            this.ctx.arc(this.current_x, this.current_y, this.radius, 0, 2 * Math.PI);
-            this.ctx.fillStyle = this.isFriendly ? "#1edf16" : "#c60000";
-            this.ctx.fill();
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeStyle = "black";
-            this.ctx.stroke();
+        this.ctx.drawImage(this.image, this.current_x - this.radius, this.current_y - this.radius, this.radius * 2, this.radius * 2);
     }
 
     stopSphere() {
@@ -52,13 +48,13 @@ export class Sphere {
     }
 
     updateSphere() {
-        this.ctx.clearRect(this.current_x - this.radius-1, this.current_y - this.radius-1, 42, 42);
+        this.ctx.clearRect(this.current_x - this.radius-1, this.current_y - this.radius-1, 62, 62);
         this.current_y += this.speed;
         this.drawSphere();
 
         if (this.current_y - this.radius >= this.cvHeight) {
             this.current_y = -this.radius;
-            this.current_x = this.getRandomInt(20, this.cvWidth - 20);
+            this.current_x = this.getRandomInt(30, this.cvWidth - 30);
         }
 
         this.animationNumber = requestAnimationFrame(() => {
@@ -67,39 +63,19 @@ export class Sphere {
     }
 
     resetSphere() {
-        this.ctx.clearRect(this.current_x - this.radius-1, this.current_y - this.radius-1, 42, 42);
+        this.ctx.clearRect(this.current_x - this.radius-1, this.current_y - this.radius-1, 62, 62);
         this.current_y = -this.radius;
-        this.current_x = this.getRandomInt(20, this.cvWidth - 20);
+        this.current_x = this.getRandomInt(30, this.cvWidth - 30);
     }
 
     getRandomInt(min: number, max: number) {
         const minCeiled = Math.ceil(min);
         const maxFloored = Math.floor(max);
-        return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); // The maximum is exclusive and the minimum is inclusive
+        return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled);
     }
 
     getNormalizedSphere(): ObjectCoordinates {
-        const min = {
-            x: (this.current_x - this.radius) / this.cvWidth,
-            y: (this.current_y - this.radius) / this.cvHeight
-        };
-
-        const max = {
-            x: (this.current_x + this.radius) / this.cvWidth,
-            y: (this.current_y + this.radius) / this.cvHeight
-        };
-
-        const center = {
-            x: this.current_x / this.cvWidth,
-            y: this.current_y / this.cvHeight
-        };
-
-        return {
-            min: min,
-            max: max,
-            center: center
-        };
-
+        return normalizationUtils.getNormalizedCircle(this.current_x, this.current_y, this.radius, this.cvWidth, this.cvHeight)
     }
 
 }
