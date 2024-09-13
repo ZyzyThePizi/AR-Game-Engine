@@ -31,7 +31,7 @@ export class AppComponent implements OnInit {
   constructor(private toastr: ToastrService) {
     // init menu data
     this.squeres = [
-      { gameType: GameType.Racer, color: "#50b8e7"},
+      { gameType: GameType.SaveTheServer, color: "#50b8e7"},
       { gameType: GameType.FallingStar, color: "#50b8e7"},
       { gameType: GameType.Blazer, color: "#50b8e7"}
     ];
@@ -96,7 +96,7 @@ export class AppComponent implements OnInit {
   }
 
   private startWebcam() {
-    navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+    navigator.mediaDevices.getUserMedia({ video: {width: {ideal: 640}, height: {ideal: 480}, frameRate: {ideal: 10, max:15}} }).then((stream) => {
       this.video.srcObject = stream;
       this.video.addEventListener("loadeddata", () => this.predictWebcam());
     });

@@ -139,7 +139,10 @@ export class Menu {
         if (!isInElement) return;
 
         switch (this.menuList[this.centerIndex].gameType){
-            case GameType.Racer:
+            case GameType.SaveTheServer:
+                gameController.isInGame = true;
+                gameController.isInMenu = false;
+                this.game = new SaveTheServer(this.cvWidth, this.cvHeight, this.ctx);
                 break
             case GameType.FallingStar:
                 gameController.isInGame = true;

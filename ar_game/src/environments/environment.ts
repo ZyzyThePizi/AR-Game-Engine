@@ -13,5 +13,6 @@ export const gameController = {
   rightWrist: null as NormalizedLandmark | null,
   leftShoulder: null as NormalizedLandmark | null,
   rightShoulder: null as NormalizedLandmark | null,
-  score: 0
+  score: 0,
+  castleHealth: 0
 };
