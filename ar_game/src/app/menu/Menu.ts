@@ -3,6 +3,7 @@ import { GameType } from "../../DataTypes/GameTypes";
 import { gameController } from "../../environments/environment";
 import { FallingStar } from "../games/FallingStar";
 import * as normalizationUtils from "../../utils/normalizationMethods";
+import { SaveTheServer } from "../games/SaveTheServer";
 
 export class Menu {
 
