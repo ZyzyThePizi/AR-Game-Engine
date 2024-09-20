@@ -33,7 +33,6 @@ export class AppComponent implements OnInit {
     this.squeres = [
       { gameType: GameType.SaveTheServer, color: "#50b8e7"},
       { gameType: GameType.FallingStar, color: "#50b8e7"},
-      { gameType: GameType.Blazer, color: "#50b8e7"}
     ];
   }
 

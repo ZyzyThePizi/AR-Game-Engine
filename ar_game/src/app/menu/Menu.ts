@@ -150,11 +150,6 @@ export class Menu {
                 gameController.isInMenu = false;
                 this.game = new FallingStar(this.cvWidth, this.cvHeight, this.ctx);
                 break
-            case GameType.Blazer:
-                break
-            default:
-                console.log("There is nothing like this");
-                break
         }
     }
 
