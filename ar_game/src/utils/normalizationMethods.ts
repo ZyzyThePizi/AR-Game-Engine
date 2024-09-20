@@ -110,7 +110,7 @@ export function getNormalizedShoulders(): ObjectCoordinates {
     };
 }
 
-export function getNormalizedWristCircle(centerX: number, centerY: number, radius: number): ObjectCoordinates {
+export function getNormalizedHandCircle(centerX: number, centerY: number, radius: number): ObjectCoordinates {
     const min = {
         x: centerX - radius,
         y: centerY - radius

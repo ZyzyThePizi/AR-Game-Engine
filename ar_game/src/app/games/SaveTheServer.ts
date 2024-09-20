@@ -61,26 +61,26 @@ export class SaveTheServer {
 
     private checkCollison(): void {
         if (!this.snowballs.length) return;
-        if (!gameController.leftWrist || !gameController.rightWrist) return;
+        if (!gameController.leftPalm || !gameController.rightPalm) return;
 
-        const wristRadius = 0.05;
-        let leftWristCircle = normalizationUtils.getNormalizedWristCircle(
-            (gameController.leftWrist.x * -1) + 1,
-            gameController.leftWrist.y,
-            wristRadius
+        const handRadius = 0.05;
+        let leftPalmCircle = normalizationUtils.getNormalizedHandCircle(
+            (gameController.leftPalm.x * -1) + 1,
+            gameController.leftPalm.y,
+            handRadius
         );
 
-        let rightWristCircle = normalizationUtils.getNormalizedWristCircle(
-            (gameController.rightWrist.x * -1) + 1,
-            gameController.rightWrist.y,
-            wristRadius
+        let rightPalmCircle = normalizationUtils.getNormalizedHandCircle(
+            (gameController.rightPalm.x * -1) + 1,
+            gameController.rightPalm.y,
+            handRadius
         );
 
         this.snowballs.forEach((snowball, index) => {
             const snowballCoordinates = snowball.getNormalizedSphere();
 
-            let isinSnowball = this.isSnowballOverlap(snowballCoordinates, leftWristCircle)
-            || this.isSnowballOverlap(snowballCoordinates, rightWristCircle);
+            let isinSnowball = this.isSnowballOverlap(snowballCoordinates, leftPalmCircle)
+            || this.isSnowballOverlap(snowballCoordinates, rightPalmCircle);
 
             if (isinSnowball) {
                 gameController.score += 1;
@@ -95,11 +95,11 @@ export class SaveTheServer {
             this.checkCollison());        
     }
 
-    private isSnowballOverlap(snowball: ObjectCoordinates, wristCircle: ObjectCoordinates): boolean {
-        const dx = snowball.center.x - wristCircle.center.x;
-        const dy = snowball.center.y - wristCircle.center.y;
+    private isSnowballOverlap(snowball: ObjectCoordinates, PalmCircle: ObjectCoordinates): boolean {
+        const dx = snowball.center.x - PalmCircle.center.x;
+        const dy = snowball.center.y - PalmCircle.center.y;
         const distance = Math.sqrt(dx * dx + dy * dy)
-        const radiusSum = (snowball.max.x-snowball.center.x) + (wristCircle.max.x - wristCircle.center.x);
+        const radiusSum = (snowball.max.x-snowball.center.x) + (PalmCircle.max.x - PalmCircle.center.x);
         return distance < radiusSum;
     }
 
@@ -126,7 +126,7 @@ export class SaveTheServer {
     }
 
     private startTimer(): void {
-        let timer = 10;
+        let timer = 30;
         this.timerInterval = setInterval(() => {
             this.timerCtx.clearRect(this.cvWidth / 2 - 75, 0, 150, this.timerCanvas.height);
             this.timerCtx.beginPath();
@@ -235,18 +235,40 @@ export class SaveTheServer {
         this.snowballs = [];
 
         const createSnowball = () => {
-            let x, y;
+            let x, y, speedX, speedY;
             const radius = 20;
 
-            do {
-                x = Math.random() * this.cvWidth;
+            const edge = Math.floor(Math.random() * 4);
+            if (edge === 0){
+                x = 0;
                 y = Math.random() * this.cvHeight;
-            } while (
-                (x > this.castleLeft && x < this.castleRight && y > this.castleTop && y < this.castleY && x + radius > this.castleLeft && x - radius < this.castleRight  && y + radius > this.castleTop)
-            );
+            } else if (edge === 1) {
+                x = this.cvWidth;
+                y = Math.random() * this.cvHeight;
+            } else if (edge === 2) {
+                x = Math.random() * this.cvWidth;
+                y = 0;
+            } else {
+                do {
+                    x = Math.random() * this.cvWidth;
+                    y = this.cvHeight;
+                } while ( x > this.castleLeft - radius && x < this.castleRight + radius);
+               
+            }
+
+            const targetX = this.castleX;
+            const targetY = this.castleY - this.castleHeight / 2;
+
+            const deltaX = targetX - x;
+            const deltaY = targetY - y;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            speedX = (deltaX / distance) * 1;
+            speedY = (deltaY / distance) * 1;
 
             const snowball = new Snowball(this.cvWidth, this.cvHeight, this.ctx, 'assets/nonFriendlyVirus.svg');
             snowball.setPosition(x, y);
+            snowball.setSpeed(speedX, speedY);
             return snowball;
         }
         

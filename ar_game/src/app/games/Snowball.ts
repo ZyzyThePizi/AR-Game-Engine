@@ -58,4 +58,9 @@ export class Snowball {
     getNormalizedSphere(): ObjectCoordinates {
         return normalizationUtils.getNormalizedCircle(this.x, this.y, this.radius, this.cvWidth, this.cvHeight);
     }
+
+    setSpeed(speedX: number, speedY: number) {
+        this.speedX = speedX;
+        this.speedY = speedY;
+    }
 }

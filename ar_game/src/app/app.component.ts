@@ -96,7 +96,7 @@ export class AppComponent implements OnInit {
   }
 
   private startWebcam() {
-    navigator.mediaDevices.getUserMedia({ video: {width: {ideal: 640}, height: {ideal: 480}, frameRate: {ideal: 10, max:15}} }).then((stream) => {
+    navigator.mediaDevices.getUserMedia({ video: {width: {ideal: 640}, height: {ideal: 480} ,frameRate: {ideal: 10, max: 15}} }).then((stream) => {
       this.video.srcObject = stream;
       this.video.addEventListener("loadeddata", () => this.predictWebcam());
     });
@@ -133,11 +133,13 @@ export class AppComponent implements OnInit {
 
     if (!reducedLandmarks[0]) return;
 
-    const [leftShoulder, rightShoulder, , , leftWrist, rightWrist] = reducedLandmarks[0];
+    const [leftShoulder, rightShoulder, , , leftWrist, rightWrist, ,leftPalm, , , rightPalm] = reducedLandmarks[0];
     gameController.leftWrist = leftWrist;
     gameController.rightWrist = rightWrist;
     gameController.leftShoulder = leftShoulder;
     gameController.rightShoulder = rightShoulder;
+    gameController.leftPalm = leftPalm;
+    gameController.rightPalm = rightPalm;
 
     if (gameController.isInMenu) {
       gameController.menuController?.onMenuEnter(leftWrist.x, leftWrist.y);

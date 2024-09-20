@@ -43,7 +43,7 @@ export class FallingStar {
     }
 
     checkCollison() {
-        if (!gameController.leftWrist || !gameController.rightWrist
+        if (!gameController.leftPalm || !gameController.rightPalm
             || !gameController.leftShoulder || !gameController.rightShoulder ) return;
 
         let friendly = this.sphereFriendly.getNormalizedSphere();
@@ -51,20 +51,20 @@ export class FallingStar {
         let shoulder = normalizationUtils.getNormalizedShoulders();
 
         const wristRadius = 0.05;
-        let leftWristCircle = normalizationUtils.getNormalizedWristCircle(
-            (gameController.leftWrist.x * -1) + 1,
-            gameController.leftWrist.y,
+        let leftPalmCircle = normalizationUtils.getNormalizedHandCircle(
+            (gameController.leftPalm.x * -1) + 1,
+            gameController.leftPalm.y,
             wristRadius
         );
 
-        let rightWristCircle = normalizationUtils.getNormalizedWristCircle(
-            (gameController.rightWrist.x * -1) + 1,
-            gameController.rightWrist.y,
+        let rightPalmCircle = normalizationUtils.getNormalizedHandCircle(
+            (gameController.rightPalm.x * -1) + 1,
+            gameController.rightPalm.y,
             wristRadius
         );
 
-        let isInSphereFriendly = this.isCircleOverlap(friendly, leftWristCircle)
-            || this.isCircleOverlap(friendly, rightWristCircle);
+        let isInSphereFriendly = this.isCircleOverlap(friendly, leftPalmCircle)
+            || this.isCircleOverlap(friendly, rightPalmCircle);
 
         if (isInSphereFriendly) {
             gameController.score += 100;
