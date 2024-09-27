@@ -17,8 +17,8 @@ export class AppComponent implements OnInit {
   poseLandmarker: PoseLandmarker = {} as PoseLandmarker;
   runningMode: "IMAGE" | "VIDEO" = "IMAGE";
   webcamRunning: boolean = false;
-  videoHeight = 540;
-  videoWidth = 720;
+  videoHeight = 720;  //660 | 669
+  videoWidth = 960;   //880 | 892
   video!: HTMLVideoElement;
   baseCanvas!: HTMLCanvasElement;
   topCanvas!: HTMLCanvasElement;

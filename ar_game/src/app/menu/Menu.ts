@@ -68,7 +68,7 @@ export class Menu {
     drawHorizontalScroolbar(){
         this.ctx.clearRect(0, 0, this.cvWidth, this.menuHeight);
 
-        const spacing = 300;
+        const spacing = 4000;
 
         for (let i = 0; i < this.menuList.length; i++) {
             let xPosition = this.centerX + (i - this.centerIndex) * (this.squereWidth + spacing);
