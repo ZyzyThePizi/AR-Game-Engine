@@ -22,7 +22,7 @@ export class Sphere {
         this.ctx = ctx;
 
         this.current_x = this.getRandomInt(30, this.cvWidth - 30);
-        this.speed = isFriendly ? 2 : 1.2 ;
+        this.speed = isFriendly ? 2 : 1,7 ;
 
         this.image = new Image();
         this.image.src = isFriendly ? 'assets/friendlyPackage.svg' : 'assets/nonFriendlyVirus.svg';
