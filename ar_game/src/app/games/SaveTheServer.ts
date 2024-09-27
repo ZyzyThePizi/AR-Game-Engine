@@ -126,7 +126,7 @@ export class SaveTheServer {
     }
 
     private startTimer(): void {
-        let timer = 30;
+        let timer = 45;
         this.timerInterval = setInterval(() => {
             this.timerCtx.clearRect(this.cvWidth / 2 - 75, 0, 150, this.timerCanvas.height);
             this.timerCtx.beginPath();
@@ -320,8 +320,9 @@ export class SaveTheServer {
         this.ctx.font = "bold 25pt Arial";
         this.ctx.textAlign = "center";
         this.ctx.textBaseline = "middle";
-        this.ctx.fillText("Megmaradt élet: " + gameController.castleHealth, this.cvWidth / 2, this.cvHeight / 2);
-        this.ctx.fillText("Kivédett támadások: " + gameController.score, this.cvWidth / 2, this.cvHeight / 2 + 50);
+        this.ctx.fillText("Megmaradt élet: " + gameController.castleHealth, this.cvWidth / 2, this.cvHeight / 2 - 50);
+        this.ctx.fillText("Kivédett támadások: " + gameController.score, this.cvWidth / 2, this.cvHeight / 2 );
+        this.ctx.fillText("Végső pontszám: " + (gameController.castleHealth+1)*(gameController.score*10), this.cvWidth / 2, this.cvHeight / 2 + 50 );
     }
 
 }
