@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 170" width="160" height="170">
+  <!-- base shadow -->
+  <ellipse cx="80" cy="162" rx="62" ry="6" fill="#000" opacity="0.25"/>
+  <!-- chassis -->
+  <rect x="14" y="16" width="132" height="142" rx="12" fill="#0d0d0d"/>
+  <rect x="14" y="12" width="132" height="140" rx="12" fill="#262626"/>
+  <rect x="20" y="18" width="120" height="10" rx="5" fill="#ffffff" opacity="0.18"/>
+  <rect x="26" y="36" width="108" height="28" rx="4" fill="#050505"/>
+  <rect x="34" y="45" width="54" height="4" rx="2" fill="#0d0d0d"/>
+  <rect x="34" y="52" width="40" height="4" rx="2" fill="#0d0d0d"/>
+  <circle cx="112" cy="50" r="4.5" fill="#3a3a3a"/>
+  <circle cx="124" cy="50" r="4.5" fill="#3a3a3a"/>
+  <rect x="26" y="74" width="108" height="28" rx="4" fill="#050505"/>
+  <rect x="34" y="83" width="54" height="4" rx="2" fill="#0d0d0d"/>
+  <rect x="34" y="90" width="40" height="4" rx="2" fill="#0d0d0d"/>
+  <circle cx="112" cy="88" r="4.5" fill="#3a3a3a"/>
+  <circle cx="124" cy="88" r="4.5" fill="#1c1c1c"/>
+  <rect x="26" y="112" width="108" height="28" rx="4" fill="#050505"/>
+  <rect x="34" y="121" width="54" height="4" rx="2" fill="#0d0d0d"/>
+  <rect x="34" y="128" width="40" height="4" rx="2" fill="#0d0d0d"/>
+  <circle cx="112" cy="126" r="4.5" fill="#3a3a3a"/>
+  <circle cx="124" cy="126" r="4.5" fill="#3a3a3a"/>
+  <!-- vents -->
+  <rect x="30" y="148" width="100" height="3" rx="1.5" fill="#0d0d0d"/><path d="M40 30 L62 70 L48 88 L78 130 L66 150" fill="none" stroke="#6b7280" stroke-width="3" stroke-linejoin="round"/>
+  <!-- status badge -->
+  <circle cx="137" cy="27" r="21" fill="#111" stroke="#ffffff" stroke-width="3"/><path d="M127 17 L147 37 M147 17 L127 37" stroke="#9ca3af" stroke-width="6" stroke-linecap="round"/>
+</svg>

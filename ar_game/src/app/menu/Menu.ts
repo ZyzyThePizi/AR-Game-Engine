@@ -4,6 +4,7 @@ import { gameController } from "../../environments/environment";
 import { FallingStar } from "../games/FallingStar";
 import * as normalizationUtils from "../../utils/normalizationMethods";
 import { SaveTheServer } from "../games/SaveTheServer";
+import { PatchTheServer } from "../games/PatchTheServer";
 
 export class Menu {
 
@@ -149,6 +150,11 @@ export class Menu {
                 gameController.isInGame = true;
                 gameController.isInMenu = false;
                 this.game = new FallingStar(this.cvWidth, this.cvHeight, this.ctx);
+                break
+            case GameType.PatchTheServer:
+                gameController.isInGame = true;
+                gameController.isInMenu = false;
+                this.game = new PatchTheServer(this.cvWidth, this.cvHeight, this.ctx);
                 break
         }
     }

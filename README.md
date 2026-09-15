@@ -50,6 +50,9 @@ Defend a central server from incoming "virus" projectiles that home in on it fro
 **Falling Star**
 Packages fall from the top of the screen — some friendly, some not. Catch the friendly packages with your palms for points, but keep the non-friendly ones away from your shoulders, or you'll lose points. You have 60 seconds to rack up the highest score you can.
 
+**Patch the Server**
+A whack-a-mole style game. The screen shows a grid of healthy, green servers. One at a time, random servers get an outdated OS: they turn yellow, and if nobody helps, red. Hold your palm over an outdated server for 1.5 seconds to patch it back to green. A server left unpatched too long turns black and is lost for good. The game ends when 5 servers have gone black. The game speeds up over time: every 15 seconds the yellow and red phases get shorter and servers go outdated more often. After the game, the operator types the player's name, and the run is saved to a top-10 leaderboard (stored in the browser) ranked by who kept their servers alive the longest.
+
 ### The point of the game
 
-Both games are built around a simple idea familiar from Kyndryl's world of IT infrastructure and security: telling the "good" traffic from the "bad" traffic, and defending what matters. It's a playful, physical way to get middle schoolers moving, engaged, and introduced to the idea of cybersecurity — while showcasing what's possible with browser-based motion tracking and no dedicated AR hardware.
+All the games are built around a simple idea familiar from Kyndryl's world of IT infrastructure and security: telling the "good" traffic from the "bad" traffic, and defending what matters. It's a playful, physical way to get middle schoolers moving, engaged, and introduced to the idea of cybersecurity — while showcasing what's possible with browser-based motion tracking and no dedicated AR hardware.
