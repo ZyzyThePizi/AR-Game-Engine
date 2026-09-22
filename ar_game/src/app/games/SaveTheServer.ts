@@ -1,4 +1,4 @@
-import { gameController } from "../../environments/environment";
+import { gameController } from "../../state/gameController";
 import { Effects } from "../../utils/effects";
 import * as gameUi from "../../utils/gameUi";
 import { GameOverScreen } from "./GameOverScreen";

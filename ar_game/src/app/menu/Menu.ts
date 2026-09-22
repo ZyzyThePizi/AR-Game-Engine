@@ -1,6 +1,6 @@
 import { MenuElement } from "../../interfaces/MenuElement";
 import { GameType } from "../../DataTypes/GameTypes";
-import { gameController } from "../../environments/environment";
+import { gameController } from "../../state/gameController";
 import { FilterTheTraffic } from "../games/FilterTheTraffic";
 import { SaveTheServer } from "../games/SaveTheServer";
 import { PatchTheServer } from "../games/PatchTheServer";

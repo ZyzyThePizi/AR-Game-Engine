@@ -1,4 +1,4 @@
-import { gameController } from "../environments/environment";
+import { gameController } from "../state/gameController";
 
 // Shared drawing helpers so every game has the same look.
 

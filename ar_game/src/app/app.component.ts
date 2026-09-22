@@ -1,10 +1,10 @@
-import {Component, ElementRef, HostListener, OnInit, ViewChild} from '@angular/core';
+import {Component, ElementRef, HostListener, NgZone, OnInit, ViewChild} from '@angular/core';
 import {ToastrService} from 'ngx-toastr';
 import {DrawingUtils, FilesetResolver, PoseLandmarker} from '@mediapipe/tasks-vision';
 import {Menu} from "./menu/Menu";
 import {MenuElement} from "../interfaces/MenuElement";
 import {GameType} from "../DataTypes/GameTypes";
-import { gameController } from "../environments/environment";
+import { gameController } from "../state/gameController";
 
 @Component({
   selector: 'app-root',
@@ -30,8 +30,9 @@ export class AppComponent implements OnInit {
   drawJoints = false;
   stageScale = 1;
   isFullscreen = false;
+  private mediaStream: MediaStream | null = null;
 
-  constructor(private toastr: ToastrService) {
+  constructor(private toastr: ToastrService, private ngZone: NgZone) {
     // init menu data
     this.squeres = [
       {
@@ -74,7 +75,9 @@ export class AppComponent implements OnInit {
         delegate: "GPU"
       },
       runningMode: this.runningMode,
-      numPoses: 2
+      // only one player is ever read (see processLandmarks); tracking a second
+      // person here would double the pose-inference cost for nothing
+      numPoses: 1
     });
     document.getElementById("demos")?.classList.remove("invisible");
   }
@@ -107,15 +110,30 @@ export class AppComponent implements OnInit {
     (event.target as HTMLButtonElement).innerText = this.webcamRunning ? "DISABLE PREDICTIONS" : "ENABLE PREDICTIONS";
 
     if (this.webcamRunning) {
-      setTimeout(() => this.startMenu(), 1000);
-      this.startWebcam();
+      // run the detection/menu/game loops outside Angular's zone: they call
+      // requestAnimationFrame every frame, and zone.js re-triggers change detection
+      // after every rAF callback unless it was scheduled from outside the zone
+      this.ngZone.runOutsideAngular(() => {
+        setTimeout(() => this.startMenu(), 1000);
+        this.startWebcam();
+      });
+    } else {
+      // free the camera immediately instead of waiting for the next enable to replace it
+      this.mediaStream?.getTracks().forEach(track => track.stop());
+      this.mediaStream = null;
     }
   }
 
   private startWebcam() {
     navigator.mediaDevices.getUserMedia({ video: {width: {ideal: 640}, height: {ideal: 480} ,frameRate: {ideal: 10, max: 15}} }).then((stream) => {
+      // stop any stream left over from a previous enable, so toggling the webcam
+      // off and on again never leaves two cameras (and two detection loops) running
+      this.mediaStream?.getTracks().forEach(track => track.stop());
+      this.mediaStream = stream;
       this.video.srcObject = stream;
-      this.video.addEventListener("loadeddata", () => this.predictWebcam());
+      // { once: true }: a repeated "loadeddata" (e.g. after re-enabling) would
+      // otherwise start an extra, duplicate predictWebcam() loop
+      this.video.addEventListener("loadeddata", () => this.predictWebcam(), { once: true });
     });
   }
 

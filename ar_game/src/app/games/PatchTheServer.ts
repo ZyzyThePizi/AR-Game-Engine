@@ -1,4 +1,4 @@
-import { gameController } from "../../environments/environment";
+import { gameController } from "../../state/gameController";
 import { ObjectCoordinates } from "../../interfaces/ObjectCoordinates";
 import * as normalizationUtils from "../../utils/normalizationMethods";
 import { Effects } from "../../utils/effects";

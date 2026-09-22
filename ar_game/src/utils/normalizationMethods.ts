@@ -1,6 +1,6 @@
 import {ObjectCoordinates} from "../interfaces/ObjectCoordinates";
 import {NormalizedLandmark} from "@mediapipe/tasks-vision";
-import {gameController} from "../environments/environment";
+import { gameController } from "../state/gameController";
 
 export function getCenterNormalized(menuHeight: number, squareHeight: number, squareWidth: number, cvWidth: number,
                                     cvHeight: number, centerX: number ): ObjectCoordinates{
