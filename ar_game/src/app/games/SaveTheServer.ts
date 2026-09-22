@@ -1,329 +1,305 @@
-import { gameController } from "src/environments/environment";
-import { ObjectCoordinates } from "src/interfaces/ObjectCoordinates";
-import { Snowball } from "./Snowball";
-import * as normalizationUtils from "../../utils/normalizationMethods";
-import { timer } from "rxjs";
+import { gameController } from "../../environments/environment";
+import { Effects } from "../../utils/effects";
+import * as gameUi from "../../utils/gameUi";
+import { GameOverScreen } from "./GameOverScreen";
+
+interface Virus {
+    x: number,
+    y: number,
+    vx: number,     // px per second
+    vy: number,
+    angle: number,
+    spin: number    // radians per second
+}
 
 export class SaveTheServer {
+
+    // --- tuning ---
+    private readonly GAME_MS = 45000;
+    private readonly MAX_HEALTH = 10;
+    private readonly VIRUS_COUNT = 5;
+    private readonly VIRUS_SPEED = 70;           // px per second
+    private readonly VIRUS_RADIUS = 25;
+    private readonly HAND_RADIUS = 0.05;
+    private readonly SERVER_WIDTH = 250;
+    private readonly SERVER_HEIGHT = 350;
+    private readonly HIT_FLASH_MS = 450;
+    private readonly LEADERBOARD_KEY = "saveTheServerLeaderboard";
+
     private cvWidth: number;
     private cvHeight: number;
     private ctx: any;
-    private timerCanvas: HTMLCanvasElement;
-    private timerCtx: any;
-    private intervalId = null as NodeJS.Timeout | null;
-    private timerInterval = null as NodeJS.Timeout | null;
-    private detectCollison = null as number | null;
-    private snowballs: Snowball[] = [];
-    private castleHealth: number = 10;
+    private hudCanvas: HTMLCanvasElement;
+    private hudCtx: any;
+    private effects = new Effects();
     private serverImage: HTMLImageElement;
-    private castleX : number;
-    private castleY: number;
-    private castleWidth: number = 250;
-    private castleHeight: number = 350;
-    private castleLeft: number;
-    private castleRight: number;
-    private castleTop: number;
-    private castleBottom: number;
+    private virusImage: HTMLImageElement;
+
+    private serverLeft: number;
+    private serverRight: number;
+    private serverTop: number;
+    private serverBottom: number;
+
+    private viruses: Virus[] = [];
+    private health = this.MAX_HEALTH;
+    private blocked = 0;
+    private hitFlashMs = 0;
+
+    private animationId = null as number | null;
+    private lastFrameTime = 0;
+    private countdownMs = gameUi.COUNTDOWN_MS;
+    private elapsedMs = 0;
+    private ended = false;
 
     constructor(cvWidth: number, cvHeight: number, ctx: any) {
         this.cvWidth = cvWidth;
         this.cvHeight = cvHeight;
         this.ctx = ctx;
 
-        this.timerCanvas = document.createElement("canvas");
-        this.timerCanvas.width = this.cvWidth;
-        this.timerCanvas.height = this.cvHeight * 0.15;
-        this.timerCanvas.style.position = "absolute";
-        this.timerCanvas.style.top = "0";
-        this.timerCanvas.style.left = "0";
-        document.getElementById('container')?.appendChild(this.timerCanvas);
-        this.serverImage = new Image();
-        this.serverImage.src = 'assets/server.svg'
-        this.timerCtx = this.timerCanvas.getContext("2d")!;
+        this.hudCanvas = gameUi.createHudCanvas(this.cvWidth, this.cvHeight);
+        this.hudCtx = this.hudCanvas.getContext("2d")!;
 
-        this.castleX = this.cvWidth/2;
-        this.castleY = this.cvHeight;
-        this.castleLeft = this.castleX - this.castleWidth / 2;
-        this.castleRight = this.castleX + this.castleWidth / 2;
-        this.castleTop = this.castleY - this.castleHeight;
-        this.castleBottom = this.castleY;
-        
+        this.serverImage = new Image();
+        this.serverImage.src = 'assets/server.svg';
+        this.virusImage = new Image();
+        this.virusImage.src = 'assets/nonFriendlyVirus.svg';
+
+        this.serverLeft = this.cvWidth / 2 - this.SERVER_WIDTH / 2;
+        this.serverRight = this.cvWidth / 2 + this.SERVER_WIDTH / 2;
+        this.serverTop = this.cvHeight - this.SERVER_HEIGHT;
+        this.serverBottom = this.cvHeight;
+
         this.initGame();
     }
 
     private initGame(): void {
         this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
         gameController.score = 0;
-        gameController.castleHealth = this.castleHealth;
-        this.drawGame();
-        this.checkCollison();
+        gameController.castleHealth = this.health;
+        this.lastFrameTime = performance.now();
+        this.animationId = requestAnimationFrame(() => this.gameLoop());
     }
 
-    private checkCollison(): void {
-        if (!this.snowballs.length) return;
-        if (!gameController.leftPalm || !gameController.rightPalm) return;
+    private gameLoop(): void {
+        if (this.ended) return;
 
-        const handRadius = 0.05;
-        let leftPalmCircle = normalizationUtils.getNormalizedHandCircle(
-            (gameController.leftPalm.x * -1) + 1,
-            gameController.leftPalm.y,
-            handRadius
-        );
+        const now = performance.now();
+        const dt = Math.min(now - this.lastFrameTime, 100);
+        this.lastFrameTime = now;
 
-        let rightPalmCircle = normalizationUtils.getNormalizedHandCircle(
-            (gameController.rightPalm.x * -1) + 1,
-            gameController.rightPalm.y,
-            handRadius
-        );
+        if (this.countdownMs > 0) {
+            this.countdownMs -= dt;
+            this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
+            this.drawServer();
+            this.drawHud();
+            gameUi.drawCountdown(this.ctx, this.cvWidth, this.cvHeight, Math.max(0, this.countdownMs));
+            this.animationId = requestAnimationFrame(() => this.gameLoop());
+            return;
+        }
 
-        this.snowballs.forEach((snowball, index) => {
-            const snowballCoordinates = snowball.getNormalizedSphere();
+        this.elapsedMs += dt;
+        this.hitFlashMs = Math.max(0, this.hitFlashMs - dt);
+        this.updateViruses(dt);
+        this.effects.update(dt);
+        this.draw();
 
-            let isinSnowball = this.isSnowballOverlap(snowballCoordinates, leftPalmCircle)
-            || this.isSnowballOverlap(snowballCoordinates, rightPalmCircle);
+        if (this.health <= 0 || this.elapsedMs >= this.GAME_MS) {
+            this.endGame();
+            return;
+        }
+        this.animationId = requestAnimationFrame(() => this.gameLoop());
+    }
 
-            if (isinSnowball) {
-                gameController.score += 1;
-                this.snowballs.splice(index, 1);
-                this.setScoreBoard();
+    // --- logic ---
+
+    private updateViruses(dt: number): void {
+        const seconds = dt / 1000;
+        const hands = [gameController.leftPalm, gameController.rightPalm]
+            .filter(palm => !!palm)
+            .map(palm => ({ x: (palm!.x * -1) + 1, y: palm!.y }));
+
+        this.viruses = this.viruses.filter(virus => {
+            virus.x += virus.vx * seconds;
+            virus.y += virus.vy * seconds;
+            virus.angle += virus.spin * seconds;
+
+            if (hands.some(hand => this.isHandOnVirus(hand, virus))) {
+                this.blocked++;
+                gameController.score = this.blocked;
+                this.effects.burst(virus.x, virus.y, "#22c55e");
+                this.effects.floatText(virus.x, virus.y - 30, "+1", "#22c55e");
+                return false;
             }
-    
 
-        });
-
-        this.detectCollison = requestAnimationFrame(() =>
-            this.checkCollison());        
-    }
-
-    private isSnowballOverlap(snowball: ObjectCoordinates, PalmCircle: ObjectCoordinates): boolean {
-        const dx = snowball.center.x - PalmCircle.center.x;
-        const dy = snowball.center.y - PalmCircle.center.y;
-        const distance = Math.sqrt(dx * dx + dy * dy)
-        const radiusSum = (snowball.max.x-snowball.center.x) + (PalmCircle.max.x - PalmCircle.center.x);
-        return distance < radiusSum;
-    }
-
-    private checkCastleCollision(snowball: Snowball): boolean {
-        const snowballCoord = snowball.getCoordinates();
-
-
-        const closestX = Math.max(this.castleLeft, Math.min(snowballCoord.x, this.castleRight));
-        const closestY = Math.max(this.castleTop, Math.min(snowballCoord.y, this.castleBottom));
-
-        const distanceX = snowballCoord.x - closestX;
-        const distanceY = snowballCoord.y - closestY;
-        const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-        if (distance < snowballCoord.radius) {
-            gameController.castleHealth -= 1;
-            this.setScoreBoard();
-            if (gameController.castleHealth <= 0) {
-                this.endGame();
+            if (this.isVirusOnServer(virus)) {
+                this.health = Math.max(0, this.health - 1);
+                gameController.castleHealth = this.health;
+                this.hitFlashMs = this.HIT_FLASH_MS;
+                this.effects.burst(virus.x, virus.y, gameUi.COLORS.danger, 22);
+                this.effects.floatText(virus.x, virus.y - 30, "-1 élet", gameUi.COLORS.danger);
+                return false;
             }
             return true;
+        });
+
+        while (this.viruses.length < this.VIRUS_COUNT) {
+            this.viruses.push(this.createVirus());
         }
-        return false;
     }
 
-    private startTimer(): void {
-        let timer = 45;
-        this.timerInterval = setInterval(() => {
-            this.timerCtx.clearRect(this.cvWidth / 2 - 75, 0, 150, this.timerCanvas.height);
-            this.timerCtx.beginPath();
-            this.timerCtx.roundRect(this.cvWidth / 2 - 75, this.timerCanvas.height / 2 - 50, 150, 100, [10]);
-            this.timerCtx.fillStyle = "rgba(168,162,162,0.15)";
-            this.timerCtx.fill();
-            this.timerCtx.closePath();
+    private isHandOnVirus(hand: { x: number, y: number }, virus: Virus): boolean {
+        const dx = virus.x / this.cvWidth - hand.x;
+        const dy = virus.y / this.cvHeight - hand.y;
+        const radiusSum = this.VIRUS_RADIUS / this.cvWidth + this.HAND_RADIUS;
+        return Math.sqrt(dx * dx + dy * dy) < radiusSum;
+    }
 
-            this.timerCtx.fillStyle = "#FFFFFF";
-            this.timerCtx.font = "bold 20pt Arial";
-            this.timerCtx.textAlign = "center";
-            this.timerCtx.textBaseline = "middle";
-            --timer;
-            this.timerCtx.fillText(timer, this.cvWidth / 2, this.timerCanvas.height / 2);
+    private isVirusOnServer(virus: Virus): boolean {
+        const closestX = Math.max(this.serverLeft, Math.min(virus.x, this.serverRight));
+        const closestY = Math.max(this.serverTop, Math.min(virus.y, this.serverBottom));
+        const dx = virus.x - closestX;
+        const dy = virus.y - closestY;
+        return Math.sqrt(dx * dx + dy * dy) < this.VIRUS_RADIUS;
+    }
 
-            if (timer <= 0) {
-                clearInterval(this.timerInterval as NodeJS.Timeout);
-                this.timerInterval = null;
-                this.endGame()
-            }
-        }, 1000)
+    // spawns on a random screen edge (not below the server) and flies towards the server
+    private createVirus(): Virus {
+        let x: number;
+        let y: number;
+        const edge = Math.floor(Math.random() * 4);
+        if (edge === 0) {
+            x = 0;
+            y = Math.random() * this.cvHeight;
+        } else if (edge === 1) {
+            x = this.cvWidth;
+            y = Math.random() * this.cvHeight;
+        } else if (edge === 2) {
+            x = Math.random() * this.cvWidth;
+            y = 0;
+        } else {
+            do {
+                x = Math.random() * this.cvWidth;
+            } while (x > this.serverLeft - this.VIRUS_RADIUS && x < this.serverRight + this.VIRUS_RADIUS);
+            y = this.cvHeight;
+        }
 
+        const deltaX = this.cvWidth / 2 - x;
+        const deltaY = this.cvHeight - this.SERVER_HEIGHT / 2 - y;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        return {
+            x: x,
+            y: y,
+            vx: deltaX / distance * this.VIRUS_SPEED,
+            vy: deltaY / distance * this.VIRUS_SPEED,
+            angle: Math.random() * 2 * Math.PI,
+            spin: (Math.random() - 0.5) * 3
+        };
+    }
+
+    // --- drawing ---
+
+    private draw(): void {
+        this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
+        this.drawHitVignette();
+        this.drawServer();
+        this.viruses.forEach(virus => this.drawVirus(virus));
+        this.effects.draw(this.ctx);
+        gameUi.drawHandMarkers(this.ctx, this.cvWidth, this.cvHeight, this.elapsedMs);
+        this.drawHud();
+    }
+
+    private healthColor(): string {
+        const ratio = this.health / this.MAX_HEALTH;
+        if (ratio > 0.6) return "#22c55e";
+        if (ratio > 0.3) return gameUi.COLORS.warning;
+        return gameUi.COLORS.danger;
+    }
+
+    private drawServer(): void {
+        const ctx = this.ctx;
+        const flash = this.hitFlashMs / this.HIT_FLASH_MS;
+        const shake = flash > 0 ? Math.sin(this.elapsedMs / 20) * 8 * flash : 0;
+        const x = this.serverLeft + shake;
+
+        ctx.save();
+        // glow in the health color, red while being hit
+        ctx.shadowColor = flash > 0 ? gameUi.COLORS.danger : this.healthColor();
+        ctx.shadowBlur = 30 + 15 * Math.sin(this.elapsedMs / 300) + 30 * flash;
+        ctx.globalAlpha = 0.8;
+        if (this.serverImage.complete && this.serverImage.naturalWidth) {
+            ctx.drawImage(this.serverImage, x, this.serverTop, this.SERVER_WIDTH, this.SERVER_HEIGHT);
+        } else {
+            ctx.fillStyle = "rgba(0, 0, 255, 0.5)";
+            ctx.fillRect(x, this.serverTop, this.SERVER_WIDTH, this.SERVER_HEIGHT);
+        }
+        ctx.restore();
+    }
+
+    private drawHitVignette(): void {
+        if (this.hitFlashMs <= 0) return;
+        const ctx = this.ctx;
+        const alpha = 0.5 * this.hitFlashMs / this.HIT_FLASH_MS;
+        const gradient = ctx.createRadialGradient(this.cvWidth / 2, this.cvHeight / 2, this.cvHeight * 0.35,
+            this.cvWidth / 2, this.cvHeight / 2, this.cvWidth * 0.7);
+        gradient.addColorStop(0, "rgba(214,40,40,0)");
+        gradient.addColorStop(1, "rgba(214,40,40," + alpha + ")");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, this.cvWidth, this.cvHeight);
+    }
+
+    private drawVirus(virus: Virus): void {
+        const ctx = this.ctx;
+        const r = this.VIRUS_RADIUS;
+        if (!this.virusImage.complete || !this.virusImage.naturalWidth) return;
+
+        ctx.save();
+        // fading trail behind the virus
+        for (let k = 2; k >= 1; k--) {
+            ctx.globalAlpha = 0.15 * (3 - k);
+            const tx = virus.x - virus.vx * 0.09 * k;
+            const ty = virus.y - virus.vy * 0.09 * k;
+            ctx.drawImage(this.virusImage, tx - r * 0.8, ty - r * 0.8, r * 1.6, r * 1.6);
+        }
+        ctx.globalAlpha = 1;
+        ctx.translate(virus.x, virus.y);
+        ctx.rotate(virus.angle);
+        const pulse = 1 + 0.08 * Math.sin(this.elapsedMs / 120 + virus.angle);
+        ctx.drawImage(this.virusImage, -r * pulse, -r * pulse, r * 2 * pulse, r * 2 * pulse);
+        ctx.restore();
+    }
+
+    private drawHud(): void {
+        const cy = this.hudCanvas.height / 2;
+        const remaining = Math.max(0, this.GAME_MS - this.elapsedMs);
+        this.hudCtx.clearRect(0, 0, this.hudCanvas.width, this.hudCanvas.height);
+
+        gameUi.drawSegmentBar(this.hudCtx, 130, cy, 230, "ÉLET", this.health, this.MAX_HEALTH, this.healthColor());
+        gameUi.drawStat(this.hudCtx, this.cvWidth / 2, cy, 180, "IDŐ", Math.ceil(remaining / 1000) + " s",
+            remaining <= 10000 ? gameUi.COLORS.danger : "#FFFFFF", remaining / this.GAME_MS);
+        gameUi.drawStat(this.hudCtx, this.cvWidth - 110, cy, 190, "KIVÉDVE", String(this.blocked), "#22c55e");
     }
 
     private endGame(): void {
-        this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
-        this.ctx.fillStyle = "red";
-        this.ctx.font = "bold 30pt Arial";
-        this.ctx.textAlign = "center";
-        this.ctx.fillText("A játéknak vége!" + gameController.score, this.cvWidth / 2, this.cvHeight / 2);
-        clearInterval(this.intervalId as NodeJS.Timeout);
-        clearInterval(this.timerInterval as NodeJS.Timeout);
-        cancelAnimationFrame(this.detectCollison as number);
-        this.timerCtx.clearRect(0, 0, this.timerCanvas.width, this.timerCanvas.height);
-        this.showGameResults();
-        setTimeout(() => {
-            this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight)
-            if (!gameController.menuController) return;
-            gameController.isInGame = false;
-            gameController.menuController?.drawMenu();
-            // garbage collector
-            gameController.menuController.game = null;
-            this.snowballs = [];
-            this.castleHealth = 0;
-        }, 5000)
+        this.ended = true;
+        cancelAnimationFrame(this.animationId as number);
+        this.hudCanvas.remove();
+        this.viruses = [];
+        this.effects.clear();
+
+        const finalScore = (this.health + 1) * (this.blocked * 10);
+        new GameOverScreen({
+            ctx: this.ctx,
+            cvWidth: this.cvWidth,
+            cvHeight: this.cvHeight,
+            stats: [
+                "Megmaradt élet: " + this.health,
+                "Kivédett támadások: " + this.blocked,
+                "Végső pontszám: " + finalScore
+            ],
+            score: finalScore,
+            formatScore: score => score + " pont",
+            leaderboardKey: this.LEADERBOARD_KEY,
+            leaderboardTitle: "Ranglista – legtöbb pont"
+        });
     }
-
-    private setScoreBoard(): void {
-        this.timerCtx.clearRect(this.cvWidth - 100, 0, 100, 100);
-        this.timerCtx.beginPath();
-        this.timerCtx.roundRect(this.cvWidth - 100, this.timerCanvas.height / 2 - 50, 100, 100, [15]);
-        this.timerCtx.fillStyle = "rgba(255,234,0,0.09)";
-        this.timerCtx.fill();
-        this.timerCtx.closePath();
-
-        this.timerCtx.fillStyle = "#FFFFFF";
-        this.timerCtx.font = "bold 10pt Arial";
-        this.timerCtx.textAlign = "center";
-        this.timerCtx.textBaseline = "middle";
-        this.timerCtx.fillText("Élet: " + gameController.castleHealth, this.cvWidth - 50, this.timerCanvas.height / 2);
-
-    }
-
-    private drawGame(): void {
-        this.startTimer();
-        this.spawnSnowballs();
-        this.setScoreBoard();
-    }
-
-    private drawCastle(): void {
-        this.ctx.globalAlpha = 0.75;
-        if (this.serverImage && this.serverImage.complete) {
-            this.ctx.drawImage(
-                this.serverImage,
-                this.castleX - this.castleWidth/2,
-                this.castleY - this.castleHeight,
-                this.castleWidth,
-                this.castleHeight
-            );
-        } else {
-            this.ctx.fillStyle = "rgba(0, 0, 255, 0.5)";
-            this.ctx.fillRect(
-                this.castleX - this.castleWidth / 2,
-                this.castleY - this.castleHeight,
-                this.castleWidth,
-                this.castleHeight
-            );
-
-            this.serverImage.onload = () => {
-                this.ctx.drawImage(
-                    this.serverImage,
-                    this.castleX - this.castleWidth/2,
-                    this.castleY - this.castleHeight,
-                    this.castleWidth,
-                    this.castleHeight
-                );
-            };
-        }
-
-        this.ctx.globalAlpha = 1.0;
-        
-    }
-
-    private spawnSnowballs(): void {
-        const snowballCount = 5;
-        this.snowballs = [];
-
-        const createSnowball = () => {
-            let x, y, speedX, speedY;
-            const radius = 20;
-
-            const edge = Math.floor(Math.random() * 4);
-            if (edge === 0){
-                x = 0;
-                y = Math.random() * this.cvHeight;
-            } else if (edge === 1) {
-                x = this.cvWidth;
-                y = Math.random() * this.cvHeight;
-            } else if (edge === 2) {
-                x = Math.random() * this.cvWidth;
-                y = 0;
-            } else {
-                do {
-                    x = Math.random() * this.cvWidth;
-                    y = this.cvHeight;
-                } while ( x > this.castleLeft - radius && x < this.castleRight + radius);
-               
-            }
-
-            const targetX = this.castleX;
-            const targetY = this.castleY - this.castleHeight / 2;
-
-            const deltaX = targetX - x;
-            const deltaY = targetY - y;
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-            speedX = (deltaX / distance) * 1;
-            speedY = (deltaY / distance) * 1;
-
-            const snowball = new Snowball(this.cvWidth, this.cvHeight, this.ctx, 'assets/nonFriendlyVirus.svg');
-            snowball.setPosition(x, y);
-            snowball.setSpeed(speedX, speedY);
-            return snowball;
-        }
-        
-        for (let i = 0; i < snowballCount; i++) {
-             this.snowballs.push(createSnowball());
-        }
-
-        const updateAndDraw = () => {
-            this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
-            this.drawCastle();
-
-            this.snowballs.forEach((snowball, index) => {
-                snowball.update();
-                snowball.draw();
-
-                if (this.checkCastleCollision(snowball)) {
-                    this.snowballs.splice(index, 1);
-                }
-
-                if (snowball.getCoordinates().y > this.cvHeight || snowball.getCoordinates().y < 0 
-                || snowball.getCoordinates().x > this.cvWidth || snowball.getCoordinates().x < 0) {
-                    this.snowballs.splice(index, 1);
-
-                }
-            });
-
-            while (this.snowballs.length < snowballCount) {
-                this.snowballs.push(createSnowball());
-            }
-
-            if (gameController.castleHealth > 0 && this.timerInterval) {
-                requestAnimationFrame(updateAndDraw);
-            } else {
-                this.endGame();
-            }
-        };
-        updateAndDraw();
-    }
-
-    private showGameResults(): void {
-        this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
-        this.ctx.beginPath();
-        this.ctx.roundRect(this.cvWidth / 2 - 225, this.cvHeight / 2 - 150, 450, 300, [15]);
-        this.ctx.fillStyle = "rgba(255,99,0,0.65)";
-        this.ctx.fill();
-        this.ctx.closePath();
-
-        this.ctx.fillStyle = "#FFFFFF";
-        this.ctx.font = "bold 25pt Arial";
-        this.ctx.textAlign = "center";
-        this.ctx.textBaseline = "middle";
-        this.ctx.fillText("Megmaradt élet: " + gameController.castleHealth, this.cvWidth / 2, this.cvHeight / 2 - 50);
-        this.ctx.fillText("Kivédett támadások: " + gameController.score, this.cvWidth / 2, this.cvHeight / 2 );
-        this.ctx.fillText("Végső pontszám: " + (gameController.castleHealth+1)*(gameController.score*10), this.cvWidth / 2, this.cvHeight / 2 + 50 );
-    }
-
 }
-

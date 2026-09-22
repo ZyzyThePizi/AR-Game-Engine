@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, ElementRef, HostListener, OnInit, ViewChild} from '@angular/core';
 import {ToastrService} from 'ngx-toastr';
 import {DrawingUtils, FilesetResolver, PoseLandmarker} from '@mediapipe/tasks-vision';
 import {Menu} from "./menu/Menu";
@@ -13,6 +13,7 @@ import { gameController } from "../environments/environment";
 })
 export class AppComponent implements OnInit {
 
+  @ViewChild('stage', { static: true }) stageRef!: ElementRef<HTMLElement>;
 
   poseLandmarker: PoseLandmarker = {} as PoseLandmarker;
   runningMode: "IMAGE" | "VIDEO" = "IMAGE";
@@ -27,6 +28,8 @@ export class AppComponent implements OnInit {
   drawingUtils!: DrawingUtils;
   squeres: MenuElement[];
   drawJoints = false;
+  stageScale = 1;
+  isFullscreen = false;
 
   constructor(private toastr: ToastrService) {
     // init menu data
@@ -37,7 +40,7 @@ export class AppComponent implements OnInit {
         description: "Kapd el a vírusokat, mielőtt elérik a szervert!"
       },
       {
-        gameType: GameType.FallingStar, color: "#f2994a",
+        gameType: GameType.FilterTheTraffic, color: "#f2994a",
         icon: "assets/friendlyPackage.svg", badge: "assets/nonFriendlyVirus.svg",
         description: "Gyűjtsd a jó csomagokat, a vírusokat kerüld el!"
       },
@@ -50,7 +53,9 @@ export class AppComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.fitStage();
     await this.createPoseLandmarker();
+    this.fitStage();
     // get html elements
     this.initializeCanvasElements();
     // width of canvases and vide frame (for camera)
@@ -163,6 +168,27 @@ export class AppComponent implements OnInit {
   }
 
   setDrawJoints(){ this.drawJoints = !this.drawJoints; }
+
+  toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen();
+    }
+  }
+
+  @HostListener('document:fullscreenchange')
+  onFullscreenChange() {
+    this.isFullscreen = !!document.fullscreenElement;
+    this.fitStage();
+  }
+
+  // scale the fixed 960x720 game world to fill the stage; hit tests are normalized, so they are unaffected
+  @HostListener('window:resize')
+  fitStage() {
+    const stage = this.stageRef.nativeElement;
+    this.stageScale = Math.min(stage.clientWidth / this.videoWidth, stage.clientHeight / this.videoHeight);
+  }
 
   startMenu() {
     gameController.menuController?.drawMenu();

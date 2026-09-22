@@ -1,28 +1,20 @@
-<!-- <div class="overflow-hidden">
-    <div class="bg-cover bg-center border-primary-500 border-round h-12rem w-full custom-background"></div>
-</div> -->
+<section id="demos" class="app invisible">
+    <aside class="brand">
+        <img class="brand-logo" src="assets/kyndryl_logo.png" alt="Kyndryl">
+        <!-- buttons drop focus after a click, so the menu's Enter shortcut can't press them again -->
+        <div class="controls">
+            <button id="webcamButton" class="control-button primary" (click)="enableCam($event); $any($event.currentTarget).blur()">ENABLE WEBCAM</button>
+            <button class="control-button" (click)="setDrawJoints(); $any($event.currentTarget).blur()">{{drawJoints ? 'Clear joints' : 'Show joints'}}</button>
+            <button class="control-button" (click)="toggleFullscreen(); $any($event.currentTarget).blur()">{{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}}</button>
+        </div>
+    </aside>
 
-<section id="demos" class="invisible">
-    <!-- <p align="center">Stand in front of your webcam to get real-time pose landmarker <br> <b>enable webcam</b> below and grant access to the webcam if prompted.</p> -->
-    <div class="grid">
-        <div class="col-6" style="width: 75%;">
-            <div id="liveView" class="videoView">
-                <button id="webcamButton" class="mdc-button mdc-button--raised" (click)="enableCam($event)">
-                    <span class="mdc-button__ripple"></span>
-                    <span class="mdc-button__label">ENABLE WEBCAM</span>
-                </button>
-                <button id="rectangleButton" (click)="setDrawJoints()"><span>{{drawJoints ? 'Clear joints': 'Show joints'}}</span></button>
-                <div style="position: relative;" id="container">
-                    <video id="webcam" [style.width]="1280+'px'" [style.height]="720+'px'"  autoplay playsinline></video>
-                    <canvas class="base_canvas" id="base_canvas" [width]="1280" [height]="720" style="position: absolute; left: 0px; top: 0px;"></canvas>
-                    <canvas #topCanvas class="top_canvas" id="top_canvas" [width]="1280" [height]="720" style="position: absolute; left: 0px; top: 0px;"></canvas>
-                </div>
-            </div>
+    <main class="stage" #stage>
+        <!-- the game world is always 960x720; it is scaled with CSS to fill the stage -->
+        <div id="container" [style.transform]="'scale(' + stageScale + ')'">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas class="base_canvas" id="base_canvas"></canvas>
+            <canvas class="top_canvas" id="top_canvas"></canvas>
         </div>
-        <div class="row-2 col-6" style="width: 25%;">
-            <div class="overflow-hidden">
-    <div class="bg-cover bg-center border-primary-500 border-round h-12rem w-full custom-background"></div>
-</div>
-        </div>
-    </div>
+    </main>
 </section>

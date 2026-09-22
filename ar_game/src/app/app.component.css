@@ -1,105 +1,124 @@
-@use "@material";
-body {
-    font-family: roboto;
-    margin: 2em;
-    color: #3d3d3d;
-    --mdc-theme-primary: #007f8b;
-    --mdc-theme-on-primary: #f1f3f4;
-}
-
-h1 {
-    color: #007f8b;
-}
-
-h2 {
-    clear: both;
-}
-
-em {
-    font-weight: bold;
-}
-
-video {
-    clear: both;
-    display: block;
-    transform: rotateY(180deg);
-    -webkit-transform: rotateY(180deg);
-    -moz-transform: rotateY(180deg);
-}
-
-section {
+.app {
+    display: flex;
+    height: 100vh;
+    box-sizing: border-box;
+    padding: 16px;
+    gap: 16px;
     opacity: 1;
     transition: opacity 500ms ease-in-out;
-}
-
-header,
-footer {
-    clear: both;
-}
-
-.removed {
-    display: none;
 }
 
 .invisible {
     opacity: 0.2;
 }
 
-.note {
-    font-style: italic;
-    font-size: 130%;
+/* --- Kyndryl branding column (the logo's orange matches the page background) --- */
+
+.brand {
+    flex: 0 0 clamp(200px, 20vw, 380px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    min-width: 0;
 }
 
-.videoView,
-.detectOnClick {
-    position: relative;
-    float: left;
-    width: 48%;
-    margin: 2% 1%;
+.brand-logo {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: auto 0;     /* vertically centered in the column */
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-button {
+    font: bold 13px Arial, sans-serif;
+    letter-spacing: 0.04em;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    background: transparent;
+    color: #ffffff;
     cursor: pointer;
+    transition: background 150ms;
 }
 
-.videoView p,
-.detectOnClick p {
-    position: absolute;
-    padding: 5px;
-    background-color: #007f8b;
-    color: #fff;
-    border: 1px dashed rgba(255, 255, 255, 0.7);
-    z-index: 2;
-    font-size: 12px;
-    margin: 0;
+.control-button:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
-.highlighter {
-    background: rgba(0, 255, 0, 0.25);
-    border: 1px dashed #fff;
-    z-index: 1;
-    position: absolute;
+.control-button.primary {
+    background: #ffffff;
+    color: #ff462d;
 }
 
-.canvas {
-    z-index: 1;
+/* --- game stage --- */
+
+.stage {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#container {
+    position: relative;
+    flex: none;
+    width: 960px;
+    height: 720px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #1b1f24;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    transform-origin: center center;
+}
+
+video {
+    display: block;
+    width: 960px;
+    height: 720px;
+    object-fit: cover;
+    transform: rotateY(180deg);
+}
+
+canvas {
     position: absolute;
-    pointer-events: none;
+    left: 0;
+    top: 0;
 }
 
 .base_canvas {
     transform: rotateY(180deg);
-    -webkit-transform: rotateY(180deg);
-    -moz-transform: rotateY(180deg);
 }
 
-.detectOnClick {
-    z-index: 0;
-}
+/* narrow or portrait screens: logo becomes a strip above the stage */
+@media (max-aspect-ratio: 4/3) {
+    .app {
+        flex-direction: column;
+    }
 
-.detectOnClick img {
-    width: 100%;
-}
+    .brand {
+        flex: 0 0 auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+    }
 
-.custom-background {
-    background-image: url('../assets/kyndryl_logo.png');
-    background-size: contain;
-    background-repeat: no-repeat;
+    .brand-logo {
+        width: auto;
+        height: 80px;
+        margin: 0;
+    }
+
+    .controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
 }

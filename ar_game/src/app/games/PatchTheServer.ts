@@ -1,7 +1,9 @@
 import { gameController } from "../../environments/environment";
 import { ObjectCoordinates } from "../../interfaces/ObjectCoordinates";
 import * as normalizationUtils from "../../utils/normalizationMethods";
-import { addLeaderboardEntry, LeaderboardEntry } from "../../utils/leaderboard";
+import { Effects } from "../../utils/effects";
+import * as gameUi from "../../utils/gameUi";
+import { GameOverScreen } from "./GameOverScreen";
 
 type ServerState = 'healthy' | 'outdated' | 'critical' | 'dead';
 
@@ -35,16 +37,13 @@ export class PatchTheServer {
     private readonly MIN_OUTDATE_INTERVAL_MS = 700;
     private readonly HAND_RADIUS = 0.05;
     private readonly LEADERBOARD_KEY = "patchTheServerLeaderboard";
-    private readonly NAME_ENTRY_TIMEOUT_MS = 60000;
-    private readonly LEADERBOARD_SHOW_MS = 7000;
 
     private cvWidth: number;
     private cvHeight: number;
     private ctx: any;
     private hudCanvas: HTMLCanvasElement;
     private hudCtx: any;
-    private nameOverlay: HTMLDivElement | null = null;
-    private nameEntryTimeout = null as NodeJS.Timeout | null;
+    private effects = new Effects();
 
     private servers: ServerCell[] = [];
     private images: Record<ServerState, HTMLImageElement>;
@@ -52,6 +51,7 @@ export class PatchTheServer {
 
     private animationId = null as number | null;
     private lastFrameTime = 0;
+    private countdownMs = gameUi.COUNTDOWN_MS;
     private elapsedMs = 0;
     private sinceLastOutdateMs = 0;
     private patchedCount = 0;
@@ -63,13 +63,7 @@ export class PatchTheServer {
         this.cvHeight = cvHeight;
         this.ctx = ctx;
 
-        this.hudCanvas = document.createElement("canvas");
-        this.hudCanvas.width = this.cvWidth;
-        this.hudCanvas.height = this.cvHeight * 0.15;
-        this.hudCanvas.style.position = "absolute";
-        this.hudCanvas.style.top = "0";
-        this.hudCanvas.style.left = "0";
-        document.getElementById('container')?.appendChild(this.hudCanvas);
+        this.hudCanvas = gameUi.createHudCanvas(this.cvWidth, this.cvHeight);
         this.hudCtx = this.hudCanvas.getContext("2d")!;
 
         this.images = {
@@ -134,12 +128,24 @@ export class PatchTheServer {
         // cap the step so a hidden tab doesn't kill every server at once
         const dt = Math.min(now - this.lastFrameTime, 250);
         this.lastFrameTime = now;
-        this.elapsedMs += dt;
 
+        if (this.countdownMs > 0) {
+            this.countdownMs -= dt;
+            this.drawServers();
+            this.drawHud();
+            gameUi.drawCountdown(this.ctx, this.cvWidth, this.cvHeight, Math.max(0, this.countdownMs));
+            this.animationId = requestAnimationFrame(() => this.gameLoop());
+            return;
+        }
+
+        this.elapsedMs += dt;
         this.outdateRandomServer(dt);
         this.updateStates();
         this.updatePatching(dt);
+        this.effects.update(dt);
         this.drawServers();
+        this.effects.draw(this.ctx);
+        gameUi.drawHandMarkers(this.ctx, this.cvWidth, this.cvHeight, this.elapsedMs);
         this.drawHud();
 
         if (this.deadCount >= this.MAX_DEAD) {
@@ -181,6 +187,8 @@ export class PatchTheServer {
                 this.setState(server, 'dead');
                 server.patchProgressMs = 0;
                 this.deadCount++;
+                this.effects.burst(server.x + server.w / 2, server.y + server.h / 2, "#333333", 24);
+                this.effects.floatText(server.x + server.w / 2, server.y, "Kiesett!", gameUi.COLORS.danger);
             }
         });
     }
@@ -209,6 +217,8 @@ export class PatchTheServer {
                 server.patchProgressMs = 0;
                 this.setState(server, 'healthy');
                 this.patchedCount++;
+                this.effects.burst(server.x + server.w / 2, server.y + server.h / 2, "#22c55e");
+                this.effects.floatText(server.x + server.w / 2, server.y, "Javítva!", "#22c55e");
             }
         });
     }
@@ -311,160 +321,38 @@ export class PatchTheServer {
     }
 
     private drawHud(): void {
-        const h = this.hudCanvas.height;
-        this.hudCtx.clearRect(0, 0, this.hudCanvas.width, h);
+        const cy = this.hudCanvas.height / 2;
+        this.hudCtx.clearRect(0, 0, this.hudCanvas.width, this.hudCanvas.height);
 
-        this.drawHudBox(this.cvWidth / 2 - 90, 180, "Idő: " + (this.elapsedMs / 1000).toFixed(1) + " s", "bold 20pt Arial");
-        this.drawHudBox(10, 140, "Sebesség: " + (this.speedLevel + 1), "bold 14pt Arial");
-        this.drawHudBox(this.cvWidth - 150, 140, "Kiesett: " + this.deadCount + "/" + this.MAX_DEAD, "bold 14pt Arial",
-            h / 2 - 20);
-        this.drawHudBox(this.cvWidth - 150, 140, "Javítva: " + this.patchedCount, "bold 14pt Arial", h / 2 + 20);
-    }
-
-    private drawHudBox(x: number, width: number, text: string, font: string, centerY: number = this.hudCanvas.height / 2): void {
-        const boxHeight = font.includes("20pt") ? 70 : 34;
-        this.hudCtx.beginPath();
-        this.hudCtx.roundRect(x, centerY - boxHeight / 2, width, boxHeight, [10]);
-        this.hudCtx.fillStyle = "rgba(0,0,0,0.35)";
-        this.hudCtx.fill();
-        this.hudCtx.closePath();
-
-        this.hudCtx.fillStyle = "#FFFFFF";
-        this.hudCtx.font = font;
-        this.hudCtx.textAlign = "center";
-        this.hudCtx.textBaseline = "middle";
-        this.hudCtx.fillText(text, x + width / 2, centerY);
+        gameUi.drawStat(this.hudCtx, 90, cy, 150, "SEBESSÉG", String(this.speedLevel + 1), gameUi.COLORS.warning);
+        gameUi.drawStat(this.hudCtx, this.cvWidth / 2, cy, 200, "TÚLÉLÉSI IDŐ", (this.elapsedMs / 1000).toFixed(1) + " s");
+        gameUi.drawSegmentBar(this.hudCtx, this.cvWidth - 270, cy, 170, "KIESETT", this.deadCount, this.MAX_DEAD,
+            gameUi.COLORS.danger);
+        gameUi.drawStat(this.hudCtx, this.cvWidth - 90, cy, 150, "JAVÍTVA", String(this.patchedCount), "#22c55e");
     }
 
     private endGame(): void {
         this.ended = true;
         cancelAnimationFrame(this.animationId as number);
         this.hudCanvas.remove();
+        this.servers = [];
+        this.effects.clear();
 
         const seconds = Math.round(this.elapsedMs / 100) / 10;
         gameController.score = seconds;
 
-        this.showGameResults(seconds);
-        this.showNameEntry(seconds);
-    }
-
-    private showGameResults(seconds: number): void {
-        this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
-        this.drawPanel(this.cvWidth / 2 - 260, this.cvHeight / 2 - 170, 520, 340);
-
-        this.ctx.fillStyle = "#FFFFFF";
-        this.ctx.textAlign = "center";
-        this.ctx.textBaseline = "middle";
-        this.ctx.font = "bold 30pt Arial";
-        this.ctx.fillText("A játéknak vége!", this.cvWidth / 2, this.cvHeight / 2 - 120);
-        this.ctx.font = "bold 22pt Arial";
-        this.ctx.fillText("Túlélési idő: " + seconds.toFixed(1) + " s", this.cvWidth / 2, this.cvHeight / 2 - 60);
-        this.ctx.fillText("Javított szerverek: " + this.patchedCount, this.cvWidth / 2, this.cvHeight / 2 - 15);
-    }
-
-    private showNameEntry(seconds: number): void {
-        const overlay = document.createElement("div");
-        // position in canvas pixels: the container can be wider than the canvas
-        overlay.style.cssText = "position:absolute; left:" + (this.cvWidth / 2) + "px; top:" + (this.cvHeight / 2 + 70) + "px;" +
-            "transform:translate(-50%,-50%); display:flex; gap:8px; z-index:10;";
-
-        const input = document.createElement("input");
-        input.type = "text";
-        input.maxLength = 20;
-        input.placeholder = "Játékos neve";
-        input.style.cssText = "font-size:18pt; padding:6px 10px; border-radius:8px; border:2px solid #fff; width:260px;";
-
-        const button = document.createElement("button");
-        button.innerText = "Mentés";
-        button.style.cssText = "font-size:18pt; padding:6px 16px; border-radius:8px; border:none;" +
-            "background:#8db600; color:#fff; font-weight:bold; cursor:pointer;";
-
-        const submit = () => this.submitName(input.value, seconds);
-        button.addEventListener("click", submit);
-        input.addEventListener("keydown", event => {
-            if (event.key === "Enter") submit();
+        new GameOverScreen({
+            ctx: this.ctx,
+            cvWidth: this.cvWidth,
+            cvHeight: this.cvHeight,
+            stats: [
+                "Túlélési idő: " + seconds.toFixed(1) + " s",
+                "Javított szerverek: " + this.patchedCount
+            ],
+            score: seconds,
+            formatScore: score => score.toFixed(1) + " s",
+            leaderboardKey: this.LEADERBOARD_KEY,
+            leaderboardTitle: "Ranglista – leghosszabb túlélés"
         });
-
-        overlay.appendChild(input);
-        overlay.appendChild(button);
-        document.getElementById('container')?.appendChild(overlay);
-        this.nameOverlay = overlay;
-        input.focus();
-
-        // never leave the station stuck if nobody types a name
-        this.nameEntryTimeout = setTimeout(() => this.submitName("", seconds), this.NAME_ENTRY_TIMEOUT_MS);
-    }
-
-    private submitName(rawName: string, seconds: number): void {
-        if (!this.nameOverlay) return;
-        clearTimeout(this.nameEntryTimeout as NodeJS.Timeout);
-        this.nameOverlay.remove();
-        this.nameOverlay = null;
-
-        const entry: LeaderboardEntry = { name: rawName.trim() || "Névtelen", seconds: seconds, date: Date.now() };
-        const entries = addLeaderboardEntry(this.LEADERBOARD_KEY, entry);
-        this.showLeaderboard(entries, entry);
-
-        setTimeout(() => this.returnToMenu(), this.LEADERBOARD_SHOW_MS);
-    }
-
-    private showLeaderboard(entries: LeaderboardEntry[], current: LeaderboardEntry): void {
-        const rowHeight = 36;
-        const panelW = 580;
-        const panelH = 150 + entries.length * rowHeight;
-        const panelX = this.cvWidth / 2 - panelW / 2;
-        const panelY = this.cvHeight / 2 - panelH / 2;
-
-        this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
-        this.drawPanel(panelX, panelY, panelW, panelH);
-
-        this.ctx.fillStyle = "#FFFFFF";
-        this.ctx.textBaseline = "middle";
-        this.ctx.textAlign = "center";
-        this.ctx.font = "bold 26pt Arial";
-        this.ctx.fillText("Ranglista – leghosszabb túlélés", this.cvWidth / 2, panelY + 40);
-
-        const firstRowY = panelY + 95;
-        entries.forEach((entry, index) => {
-            const y = firstRowY + index * rowHeight;
-            const isCurrent = entry.date === current.date && entry.name === current.name;
-            if (isCurrent) {
-                this.ctx.beginPath();
-                this.ctx.roundRect(panelX + 20, y - rowHeight / 2 + 2, panelW - 40, rowHeight - 4, [8]);
-                this.ctx.fillStyle = "rgba(141,182,0,0.9)";
-                this.ctx.fill();
-                this.ctx.closePath();
-            }
-            this.ctx.fillStyle = "#FFFFFF";
-            this.ctx.font = (isCurrent ? "bold " : "") + "18pt Arial";
-            this.ctx.textAlign = "left";
-            this.ctx.fillText((index + 1) + ". " + entry.name, panelX + 40, y);
-            this.ctx.textAlign = "right";
-            this.ctx.fillText(entry.seconds.toFixed(1) + " s", panelX + panelW - 40, y);
-        });
-
-        if (!entries.includes(current)) {
-            this.ctx.textAlign = "center";
-            this.ctx.font = "bold 16pt Arial";
-            this.ctx.fillText("A te időd: " + current.seconds.toFixed(1) + " s", this.cvWidth / 2, panelY + panelH - 20);
-        }
-    }
-
-    private drawPanel(x: number, y: number, w: number, h: number): void {
-        this.ctx.beginPath();
-        this.ctx.roundRect(x, y, w, h, [15]);
-        this.ctx.fillStyle = "rgba(255,99,0,0.8)";
-        this.ctx.fill();
-        this.ctx.closePath();
-    }
-
-    private returnToMenu(): void {
-        this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
-        this.servers = [];
-        if (!gameController.menuController) return;
-        gameController.isInGame = false;
-        gameController.menuController.drawMenu();
-        // garbage collector
-        gameController.menuController.game = null;
     }
 }

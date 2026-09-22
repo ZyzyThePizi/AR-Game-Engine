@@ -1,7 +1,7 @@
 import { MenuElement } from "../../interfaces/MenuElement";
 import { GameType } from "../../DataTypes/GameTypes";
 import { gameController } from "../../environments/environment";
-import { FallingStar } from "../games/FallingStar";
+import { FilterTheTraffic } from "../games/FilterTheTraffic";
 import { SaveTheServer } from "../games/SaveTheServer";
 import { PatchTheServer } from "../games/PatchTheServer";
 
@@ -249,8 +249,8 @@ export class Menu {
             case GameType.SaveTheServer:
                 this.game = new SaveTheServer(this.cvWidth, this.cvHeight, this.ctx);
                 break
-            case GameType.FallingStar:
-                this.game = new FallingStar(this.cvWidth, this.cvHeight, this.ctx);
+            case GameType.FilterTheTraffic:
+                this.game = new FilterTheTraffic(this.cvWidth, this.cvHeight, this.ctx);
                 break
             case GameType.PatchTheServer:
                 this.game = new PatchTheServer(this.cvWidth, this.cvHeight, this.ctx);

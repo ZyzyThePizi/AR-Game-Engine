@@ -1,6 +1,6 @@
 export interface LeaderboardEntry {
     name: string,
-    seconds: number,
+    score: number,
     date: number
 }
 
@@ -10,16 +10,24 @@ export function loadLeaderboard(key: string): LeaderboardEntry[] {
     try {
         const raw = localStorage.getItem(key);
         const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
+        if (!Array.isArray(parsed)) return [];
+        // older Patch the Server entries stored the result as "seconds"
+        return parsed
+            .map((entry: any) => ({
+                name: String(entry.name),
+                score: typeof entry.score === "number" ? entry.score : entry.seconds,
+                date: entry.date
+            }))
+            .filter(entry => typeof entry.score === "number");
     } catch {
         return [];
     }
 }
 
-// Saves the entry and returns the updated top list (sorted by longest survival first).
+// Saves the entry and returns the updated top list (highest score first).
 export function addLeaderboardEntry(key: string, entry: LeaderboardEntry): LeaderboardEntry[] {
     const entries = [...loadLeaderboard(key), entry]
-        .sort((a, b) => b.seconds - a.seconds)
+        .sort((a, b) => b.score - a.score)
         .slice(0, MAX_ENTRIES);
     try {
         localStorage.setItem(key, JSON.stringify(entries));

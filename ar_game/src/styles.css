@@ -4,7 +4,8 @@
 
 body {
     font-family: roboto;
-    margin: 2em;
+    margin: 0;
+    overflow: hidden;
     color: #3d3d3d;
     --mdc-theme-primary: #007f8b;
     --mdc-theme-on-primary: #f1f3f4;

@@ -81,26 +81,27 @@ export function getNormalizedCircleMenu(menuHeight: number ,center_x: number, ce
 
 }
 
+// Box around both shoulders (mirrored like the canvas), padded 0.05 vertically.
+// Works on copies: the shared landmarks must not be flipped in place.
 export function getNormalizedShoulders(): ObjectCoordinates {
-    let minBase = gameController.leftShoulder as NormalizedLandmark;
-    let maxBase = gameController.rightShoulder as NormalizedLandmark;
-
-    minBase.x = (minBase.x * -1) + 1;
-    maxBase.x = (maxBase.x * -1) + 1;
+    const left = gameController.leftShoulder as NormalizedLandmark;
+    const right = gameController.rightShoulder as NormalizedLandmark;
+    const leftX = (left.x * -1) + 1;
+    const rightX = (right.x * -1) + 1;
 
     const min = {
-        x: minBase.x,
-        y: minBase.y - 0.05
+        x: Math.min(leftX, rightX),
+        y: Math.min(left.y, right.y) - 0.05
     };
 
     const max = {
-        x: maxBase.x,
-        y: maxBase.y + 0.05
+        x: Math.max(leftX, rightX),
+        y: Math.max(left.y, right.y) + 0.05
     };
 
     const center = {
-        x: (maxBase.x - minBase.x) / 2,
-        y: (maxBase.y - minBase.y) / 2
+        x: (min.x + max.x) / 2,
+        y: (min.y + max.y) / 2
     };
 
     return {

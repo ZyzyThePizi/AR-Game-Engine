@@ -1,5 +1,5 @@
 export enum GameType {
     SaveTheServer = "Save the Server",
-    FallingStar = "Falling Star",
+    FilterTheTraffic = "Filter the Traffic",
     PatchTheServer = "Patch the Server"
 }
