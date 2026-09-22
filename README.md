@@ -39,7 +39,7 @@ Output is generated in `ar_game/dist/`.
 
 1. Stand back far enough from the webcam that your shoulders, arms, and hands are all visible in frame, in a well-lit room.
 2. Enable the webcam and wait for pose tracking to lock on — you'll see landmark dots overlaid on your video feed.
-3. Navigate the menu by moving your hand into the left/right edge zones to scroll between games, then hold your hand over the checkmark button to select one.
+3. Pick a game from the carousel menu. Your hands show up as round cursors. To browse, swipe a hand sideways at card height, or hold a hand on one of the side cards until its ring fills. To play, hold a hand on the green **INDÍTÁS** button until it fills. (Operator shortcut: ←/→ to browse, Enter to start.)
 4. Play using your hands — there is no keyboard or mouse input in-game.
 
 ### Games
@@ -51,7 +51,7 @@ Defend a central server from incoming "virus" projectiles that home in on it fro
 Packages fall from the top of the screen — some friendly, some not. Catch the friendly packages with your palms for points, but keep the non-friendly ones away from your shoulders, or you'll lose points. You have 60 seconds to rack up the highest score you can.
 
 **Patch the Server**
-A whack-a-mole style game. The screen shows a grid of healthy, green servers. One at a time, random servers get an outdated OS: they turn yellow, and if nobody helps, red. Hold your palm over an outdated server for 1.5 seconds to patch it back to green. A server left unpatched too long turns black and is lost for good. The game ends when 5 servers have gone black. The game speeds up over time: every 15 seconds the yellow and red phases get shorter and servers go outdated more often. After the game, the operator types the player's name, and the run is saved to a top-10 leaderboard (stored in the browser) ranked by who kept their servers alive the longest.
+A whack-a-mole style game. The screen shows a grid of healthy, green servers. One at a time, random servers get an outdated OS: they turn yellow, and if nobody helps, red. Hold your palm over an outdated server for 1.5 seconds to patch it back to green. A server left unpatched too long turns black and is lost for good. The game ends when 5 servers have gone black. The game speeds up over time: every 20 seconds the yellow and red phases get shorter and servers go outdated more often. There is no time limit: an average player lasts about two minutes, and a skilled player using both hands can keep going much longer. After the game, the operator types the player's name, and the run is saved to a top-10 leaderboard (stored in the browser) ranked by who kept their servers alive the longest.
 
 ### The point of the game
 

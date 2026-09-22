@@ -27,8 +27,10 @@ export class PatchTheServer {
     private readonly MIN_PHASE_MS = 1500;
     private readonly PATCH_HOLD_MS = 1500;
     private readonly MAX_DEAD = 5;
-    private readonly SPEEDUP_EVERY_MS = 15000;
-    private readonly SPEEDUP_FACTOR = 0.85;
+    // gentle ramp: a typical player lasts ~2 minutes, a skilled two-handed one ~4. There is no time limit;
+    // the MIN_* floors keep it beatable only for so long, since outdating eventually outpaces two hands.
+    private readonly SPEEDUP_EVERY_MS = 20000;
+    private readonly SPEEDUP_FACTOR = 0.91;
     private readonly OUTDATE_INTERVAL_MS = 2500;
     private readonly MIN_OUTDATE_INTERVAL_MS = 700;
     private readonly HAND_RADIUS = 0.05;

@@ -31,9 +31,21 @@ export class AppComponent implements OnInit {
   constructor(private toastr: ToastrService) {
     // init menu data
     this.squeres = [
-      { gameType: GameType.SaveTheServer, color: "#50b8e7"},
-      { gameType: GameType.FallingStar, color: "#50b8e7"},
-      { gameType: GameType.PatchTheServer, color: "#50b8e7"},
+      {
+        gameType: GameType.SaveTheServer, color: "#2f80ed",
+        icon: "assets/server.svg", badge: "assets/nonFriendlyVirus.svg",
+        description: "Kapd el a vírusokat, mielőtt elérik a szervert!"
+      },
+      {
+        gameType: GameType.FallingStar, color: "#f2994a",
+        icon: "assets/friendlyPackage.svg", badge: "assets/nonFriendlyVirus.svg",
+        description: "Gyűjtsd a jó csomagokat, a vírusokat kerüld el!"
+      },
+      {
+        gameType: GameType.PatchTheServer, color: "#27ae60",
+        icon: "assets/patchServerOutdated.svg", badge: "assets/patchWrench.svg",
+        description: "Tartsd a kezed az elavult szervereken, és javítsd meg őket!"
+      },
     ];
   }
 
@@ -140,12 +152,7 @@ export class AppComponent implements OnInit {
     gameController.rightShoulder = rightShoulder;
     gameController.leftPalm = leftPalm;
     gameController.rightPalm = rightPalm;
-
-    if (gameController.isInMenu) {
-      gameController.menuController?.onMenuEnter(leftWrist.x, leftWrist.y);
-      gameController.menuController?.onMenuEnter(rightWrist.x, rightWrist.y);
-      gameController.menuController?.onEnter(rightWrist.x, rightWrist.y);
-    }
+    // the menu runs its own animation loop and reads the hands from gameController
 
     if (this.drawJoints) {
       this.baseCanvasCtx.clearRect(0,0, this.videoWidth, this.videoHeight);
