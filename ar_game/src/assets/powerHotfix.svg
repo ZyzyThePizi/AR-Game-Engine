@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- heart -->
+  <path d="M32 57 C14 44 5 34 5 22 C5 13 12 7 20 7 C25.5 7 29.5 10 32 14 C34.5 10 38.5 7 44 7 C52 7 59 13 59 22 C59 34 50 44 32 57 Z"
+        fill="#f43f5e" stroke="#9f1239" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M14 18 C16 13 21 12 24 14" stroke="#fecdd3" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <!-- plus -->
+  <rect x="27" y="17" width="10" height="28" rx="3" fill="#ffffff"/>
+  <rect x="18" y="26" width="28" height="10" rx="3" fill="#ffffff"/>
+</svg>

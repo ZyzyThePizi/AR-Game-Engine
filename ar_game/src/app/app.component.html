@@ -3,9 +3,9 @@
         <img class="brand-logo" src="assets/kyndryl_logo.png" alt="Kyndryl">
         <!-- buttons drop focus after a click, so the menu's Enter shortcut can't press them again -->
         <div class="controls">
-            <button id="webcamButton" class="control-button primary" (click)="enableCam($event); $any($event.currentTarget).blur()">ENABLE WEBCAM</button>
-            <button class="control-button" (click)="setDrawJoints(); $any($event.currentTarget).blur()">{{drawJoints ? 'Clear joints' : 'Show joints'}}</button>
-            <button class="control-button" (click)="toggleFullscreen(); $any($event.currentTarget).blur()">{{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}}</button>
+            <button id="webcamButton" class="control-button primary" (click)="enableCam($event); $any($event.currentTarget).blur()">{{text(webcamRunning ? 'disableWebcam' : 'enableWebcam')}}</button>
+            <button class="control-button" (click)="setDrawJoints(); $any($event.currentTarget).blur()">{{text(drawJoints ? 'hideJoints' : 'showJoints')}}</button>
+            <button class="control-button" (click)="toggleFullscreen(); $any($event.currentTarget).blur()">{{text(isFullscreen ? 'exitFullscreen' : 'fullscreen')}}</button>
         </div>
     </aside>
 

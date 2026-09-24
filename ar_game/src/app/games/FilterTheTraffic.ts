@@ -4,6 +4,11 @@ import * as normalizationUtils from "../../utils/normalizationMethods";
 import { Effects } from "../../utils/effects";
 import * as gameUi from "../../utils/gameUi";
 import { GameOverScreen } from "./GameOverScreen";
+import { byDifficulty, scoreMultiplier } from "../../state/settings";
+import { GameType } from "../../DataTypes/GameTypes";
+import { t } from "../../utils/i18n";
+import { PowerUpArt, POWER_UP_COLORS } from "../../utils/powerUps";
+import { glowSprite, imageSprite } from "../../utils/sprites";
 
 type ItemKind = 'package' | 'virus';
 
@@ -17,20 +22,29 @@ interface FallingItem {
     swayPhase: number
 }
 
+interface FallingClock { baseX: number, y: number, swayPhase: number }
+
 export class FilterTheTraffic {
 
-    // --- tuning ---
+    // --- tuning (medium = the original balance) ---
     private readonly GAME_MS = 60000;
     private readonly ITEM_RADIUS = 30;
-    private readonly PACKAGE_SPEED = 120;        // px per second
-    private readonly VIRUS_SPEED = 70;
+    private readonly PACKAGE_SPEED = byDifficulty({ easy: 95, medium: 120, hard: 150 });    // px per second
+    private readonly VIRUS_SPEED = byDifficulty({ easy: 55, medium: 70, hard: 95 });
     private readonly SWAY_PX = 14;
     private readonly HAND_RADIUS = 0.05;
-    private readonly PACKAGE_POINTS = 100;
-    private readonly VIRUS_PENALTY = 200;
-    private readonly SECOND_PACKAGE_AT_MS = 20000;
-    private readonly SECOND_VIRUS_AT_MS = 30000;
+    // both scale with the difficulty multiplier, so the final score is multiplied as a whole
+    private readonly PACKAGE_POINTS = Math.round(100 * scoreMultiplier());
+    private readonly VIRUS_PENALTY = Math.round(200 * scoreMultiplier());
+    private readonly SECOND_PACKAGE_AT_MS = byDifficulty({ easy: 20000, medium: 20000, hard: 15000 });
+    private readonly SECOND_VIRUS_AT_MS = byDifficulty({ easy: 40000, medium: 30000, hard: 20000 });
     private readonly BODY_FLASH_MS = 500;
+    // bonus stopwatch: falls every 12-18 s, catching it adds time to the clock
+    private readonly CLOCK_BONUS_MS = byDifficulty({ easy: 7000, medium: 5000, hard: 4000 });
+    private readonly CLOCK_EVERY_MS = { min: 12000, max: 18000 };
+    private readonly CLOCK_SPEED = 90;           // px per second, a bit slower than packages
+    private readonly CLOCK_RADIUS = 34;
+    private readonly TIME_FLASH_MS = 900;
     private readonly LEADERBOARD_KEY = "filterTheTrafficLeaderboard";
 
     private cvWidth: number;
@@ -45,6 +59,12 @@ export class FilterTheTraffic {
     private caught = 0;
     private bodyHits = 0;
     private bodyFlashMs = 0;
+    private powerUpArt = new PowerUpArt(['time']);
+    private clock: FallingClock | null = null;
+    private nextClockAtMs = this.randomBetween(this.CLOCK_EVERY_MS.min, this.CLOCK_EVERY_MS.max);
+    private bonusMs = 0;
+    private timeFlashMs = 0;
+    private hudKey = "";
 
     private animationId = null as number | null;
     private lastFrameTime = 0;
@@ -86,6 +106,10 @@ export class FilterTheTraffic {
         if (this.ended) return;
 
         const now = performance.now();
+        if (now - this.lastFrameTime < gameUi.MIN_FRAME_MS) {
+            this.animationId = requestAnimationFrame(() => this.gameLoop());
+            return;
+        }
         const dt = Math.min(now - this.lastFrameTime, 100);
         this.lastFrameTime = now;
 
@@ -101,12 +125,14 @@ export class FilterTheTraffic {
 
         this.elapsedMs += dt;
         this.bodyFlashMs = Math.max(0, this.bodyFlashMs - dt);
+        this.timeFlashMs = Math.max(0, this.timeFlashMs - dt);
         this.addItemsOverTime();
         this.updateItems(dt);
+        this.updateClock(dt);
         this.effects.update(dt);
         this.draw();
 
-        if (this.elapsedMs >= this.GAME_MS) {
+        if (this.elapsedMs >= this.totalMs) {
             this.endGame();
             return;
         }
@@ -174,6 +200,50 @@ export class FilterTheTraffic {
         });
     }
 
+    private get totalMs(): number {
+        return this.GAME_MS + this.bonusMs;
+    }
+
+    private updateClock(dt: number): void {
+        if (!this.clock) {
+            // no stopwatch in the last seconds: it couldn't land in time anyway
+            if (this.elapsedMs >= this.nextClockAtMs && this.totalMs - this.elapsedMs > 5000) {
+                this.clock = {
+                    baseX: this.randomBetween(80, this.cvWidth - 80),
+                    y: -this.CLOCK_RADIUS,
+                    swayPhase: Math.random() * 2 * Math.PI
+                };
+            }
+            return;
+        }
+
+        const clock = this.clock;
+        clock.y += this.CLOCK_SPEED * dt / 1000;
+        const x = this.clockX(clock);
+        const circle = normalizationUtils.getNormalizedCircle(x, clock.y, this.CLOCK_RADIUS, this.cvWidth, this.cvHeight);
+        const caught = [gameController.leftPalm, gameController.rightPalm].some(palm => palm &&
+            this.isCircleOverlap(circle, normalizationUtils.getNormalizedHandCircle((palm.x * -1) + 1, palm.y, this.HAND_RADIUS)));
+
+        if (caught) {
+            this.bonusMs += this.CLOCK_BONUS_MS;
+            this.timeFlashMs = this.TIME_FLASH_MS;
+            this.effects.burst(x, clock.y, POWER_UP_COLORS.time, 24);
+            this.effects.floatText(x, clock.y - 40, t("timeBonus", { n: this.CLOCK_BONUS_MS / 1000 }), POWER_UP_COLORS.time);
+        }
+        if (caught || clock.y - this.CLOCK_RADIUS > this.cvHeight) {
+            this.clock = null;
+            this.nextClockAtMs = this.elapsedMs + this.randomBetween(this.CLOCK_EVERY_MS.min, this.CLOCK_EVERY_MS.max);
+        }
+    }
+
+    private clockX(clock: FallingClock): number {
+        return clock.baseX + Math.sin(this.elapsedMs / 450 + clock.swayPhase) * 30;
+    }
+
+    private randomBetween(min: number, max: number): number {
+        return min + Math.random() * (max - min);
+    }
+
     private getBodyZone(): ObjectCoordinates | null {
         if (!gameController.leftShoulder || !gameController.rightShoulder) return null;
         return normalizationUtils.getNormalizedShoulders();
@@ -205,6 +275,9 @@ export class FilterTheTraffic {
         this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
         this.drawBodyZone();
         this.items.forEach(item => this.drawItem(item));
+        if (this.clock) {
+            this.powerUpArt.draw(this.ctx, 'time', this.clockX(this.clock), this.clock.y, this.CLOCK_RADIUS, this.elapsedMs);
+        }
         this.effects.draw(this.ctx);
         gameUi.drawHandMarkers(this.ctx, this.cvWidth, this.cvHeight, this.elapsedMs);
         this.drawHud();
@@ -236,31 +309,42 @@ export class FilterTheTraffic {
 
     private drawItem(item: FallingItem): void {
         const image = this.images[item.kind];
-        if (!image.complete || !image.naturalWidth) return;
+        const r = this.ITEM_RADIUS;
+        const sprite = imageSprite(image, r * 2, r * 2);
+        if (!sprite) return;
 
         const ctx = this.ctx;
-        const r = this.ITEM_RADIUS;
         const x = this.itemX(item);
+        // soft glow tells good and bad apart at a glance; baked once, pulsed with alpha
+        const glow = glowSprite(image, r * 2, r * 2, item.kind === 'package' ? "#22c55e" : gameUi.COLORS.danger, 24);
 
         ctx.save();
-        // soft glow tells good and bad apart at a glance
-        ctx.shadowColor = item.kind === 'package' ? "#22c55e" : gameUi.COLORS.danger;
-        ctx.shadowBlur = 22 + 8 * Math.sin(this.elapsedMs / 200 + item.swayPhase);
         ctx.translate(x, item.y);
         ctx.rotate(item.kind === 'virus' ? item.angle : Math.sin(item.angle) * 0.3);
-        ctx.drawImage(image, -r, -r, r * 2, r * 2);
+        if (glow) {
+            ctx.globalAlpha = 0.75 + 0.25 * Math.sin(this.elapsedMs / 200 + item.swayPhase);
+            ctx.drawImage(glow.canvas, -r - glow.pad, -r - glow.pad);
+            ctx.globalAlpha = 1;
+        }
+        ctx.drawImage(sprite.canvas, -r, -r);
         ctx.restore();
     }
 
     private drawHud(): void {
         const cy = this.hudCanvas.height / 2;
-        const remaining = Math.max(0, this.GAME_MS - this.elapsedMs);
+        const remaining = Math.max(0, this.totalMs - this.elapsedMs);
+        const timeColor = this.timeFlashMs > 0 ? POWER_UP_COLORS.time : remaining <= 10000 ? gameUi.COLORS.danger : "#FFFFFF";
+        const progress = Math.min(1, remaining / this.GAME_MS);
+        // the HUD only changes a few times a second: redraw it only then
+        const key = [gameController.score, Math.ceil(remaining / 1000), timeColor, progress.toFixed(2), this.caught].join("|");
+        if (key === this.hudKey) return;
+        this.hudKey = key;
         this.hudCtx.clearRect(0, 0, this.hudCanvas.width, this.hudCanvas.height);
 
-        gameUi.drawStat(this.hudCtx, 110, cy, 190, "PONTOK", String(gameController.score), gameUi.COLORS.warning);
-        gameUi.drawStat(this.hudCtx, this.cvWidth / 2, cy, 180, "IDŐ", Math.ceil(remaining / 1000) + " s",
-            remaining <= 10000 ? gameUi.COLORS.danger : "#FFFFFF", remaining / this.GAME_MS);
-        gameUi.drawStat(this.hudCtx, this.cvWidth - 110, cy, 190, "ELKAPVA", String(this.caught), "#22c55e");
+        gameUi.drawStat(this.hudCtx, 110, cy, 190, t("score"), String(gameController.score), gameUi.COLORS.warning);
+        gameUi.drawStat(this.hudCtx, this.cvWidth / 2, cy, 180, t("time"), Math.ceil(remaining / 1000) + " s",
+            timeColor, progress);
+        gameUi.drawStat(this.hudCtx, this.cvWidth - 110, cy, 190, t("caught"), String(this.caught), "#22c55e");
     }
 
     private endGame(): void {
@@ -268,6 +352,7 @@ export class FilterTheTraffic {
         cancelAnimationFrame(this.animationId as number);
         this.hudCanvas.remove();
         this.items = [];
+        this.clock = null;
         this.effects.clear();
 
         const score = gameController.score;
@@ -275,15 +360,13 @@ export class FilterTheTraffic {
             ctx: this.ctx,
             cvWidth: this.cvWidth,
             cvHeight: this.cvHeight,
+            gameName: GameType.FilterTheTraffic,
             stats: [
-                "Elkapott csomagok: " + this.caught,
-                "Vírustalálatok: " + this.bodyHits,
-                "Megszerzett pontok: " + score
+                { label: t("packagesCaught"), value: String(this.caught) },
+                { label: t("virusHits"), value: String(this.bodyHits) }
             ],
             score: score,
-            formatScore: value => value + " pont",
-            leaderboardKey: this.LEADERBOARD_KEY,
-            leaderboardTitle: "Ranglista – legtöbb pont"
+            leaderboardKey: this.LEADERBOARD_KEY
         });
     }
 }

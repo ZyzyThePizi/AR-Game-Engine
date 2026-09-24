@@ -1,9 +1,14 @@
 import { gameController } from "../state/gameController";
+import { DIFFICULTY_COLOR, scoreMultiplier, settings } from "../state/settings";
+import { formatMultiplier, t } from "./i18n";
 
 // Shared drawing helpers so every game has the same look.
 
 export const HUD_HEIGHT_RATIO = 0.15;
 export const COUNTDOWN_MS = 3000;
+// Frame cap for every loop: on 120/144 Hz screens requestAnimationFrame fires 2-2.4x as
+// often as on a 60 Hz one; drawing more than ~60-70 frames a second only burns CPU.
+export const MIN_FRAME_MS = 12;
 
 export const COLORS = {
     brand: "#ff462d",
@@ -11,6 +16,13 @@ export const COLORS = {
     warning: "#e0a800",
     danger: "#d62828",
     hudBox: "rgba(0,0,0,0.5)"
+};
+
+export const GLASS = {
+    tint: "rgba(15,23,42,0.55)",
+    border: "rgba(255,255,255,0.30)",
+    key: "rgba(255,255,255,0.10)",
+    veil: "rgba(8,12,24,0.45)"      // dims the camera image behind full-screen overlays
 };
 
 // HUD canvas on top of the game canvas; remove it when the game ends
@@ -97,20 +109,56 @@ export function drawSegmentBar(ctx: any, cx: number, cy: number, width: number, 
     ctx.restore();
 }
 
-// The orange panel used for results and leaderboards
-export function drawPanel(ctx: any, x: number, y: number, w: number, h: number): void {
+// Frosted-glass look without backdrop-filter (too costly on low-end PCs over live video):
+// a translucent tint, a soft top highlight and a thin light border.
+export function drawGlass(ctx: any, x: number, y: number, w: number, h: number, radius: number = 18,
+                          tint: string = GLASS.tint, border: string = GLASS.border): void {
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.45)";
-    ctx.shadowBlur = 30;
     ctx.beginPath();
-    ctx.roundRect(x, y, w, h, [20]);
-    ctx.fillStyle = "rgba(255,70,45,0.92)";
+    ctx.roundRect(x, y, w, h, [radius]);
+    ctx.fillStyle = tint;
     ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    const highlight = ctx.createLinearGradient(0, y, 0, y + h);
+    highlight.addColorStop(0, "rgba(255,255,255,0.20)");
+    highlight.addColorStop(0.5, "rgba(255,255,255,0.05)");
+    highlight.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = highlight;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = border;
     ctx.stroke();
     ctx.restore();
+}
+
+// Small colored pill with text, centered on (cx, cy). Returns its width.
+export function drawChip(ctx: any, cx: number, cy: number, text: string, color: string,
+                         font: string = "bold 11pt Arial", height: number = 24): number {
+    ctx.save();
+    ctx.font = font;
+    const w = ctx.measureText(text).width + height;
+    ctx.beginPath();
+    ctx.roundRect(cx - w / 2, cy - height / 2, w, height, [height / 2]);
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, cx, cy + 1);
+    ctx.restore();
+    return w;
+}
+
+// Offscreen canvas for layers that only change occasionally (drawn once, blitted every frame)
+export function createLayer(width: number, height: number): { canvas: HTMLCanvasElement, ctx: any } {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return { canvas: canvas, ctx: canvas.getContext("2d")! };
 }
 
 export function drawOutlinedText(ctx: any, text: string, x: number, y: number, font: string,
@@ -160,7 +208,10 @@ export function drawCountdown(ctx: any, cvWidth: number, cvHeight: number, remai
     ctx.globalAlpha = 1 - Math.max(0, withinSecond - 0.7) / 0.3 * 0.6;
     drawOutlinedText(ctx, String(number), 0, 0, "bold 110pt Arial", "#FFFFFF", 12);
     ctx.restore();
-    drawOutlinedText(ctx, "Készülj!", cvWidth / 2, cvHeight / 2 + 110, "bold 26pt Arial");
+    drawOutlinedText(ctx, t("getReady"), cvWidth / 2, cvHeight / 2 + 110, "bold 26pt Arial");
+    // players should always know which difficulty (and score multiplier) they are playing
+    drawOutlinedText(ctx, t("difficultyLine", { level: t(settings.difficulty), mult: formatMultiplier(scoreMultiplier()) }),
+        cvWidth / 2, cvHeight / 2 + 160, "bold 16pt Arial", DIFFICULTY_COLOR[settings.difficulty], 5);
 }
 
 // Hands control back to the menu. Call after the game has cleaned up its loops and extra canvases.

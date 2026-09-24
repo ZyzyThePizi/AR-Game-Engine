@@ -12,6 +12,8 @@ export const gameController = {
   rightWrist: null as NormalizedLandmark | null,
   leftShoulder: null as NormalizedLandmark | null,
   rightShoulder: null as NormalizedLandmark | null,
+  // hand points used by every game and menu (estimated along the forearm, see
+  // AppComponent.handPoint); null while that hand is outside the camera frame
   leftPalm: null as NormalizedLandmark | null,
   rightPalm: null as NormalizedLandmark | null,
   score: 0,

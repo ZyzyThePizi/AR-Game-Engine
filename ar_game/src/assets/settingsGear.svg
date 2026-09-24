@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <g fill="#ffffff">
+    <rect id="tooth" x="26.5" y="3" width="11" height="13" rx="2.5"/>
+    <use href="#tooth" transform="rotate(45 32 32)"/>
+    <use href="#tooth" transform="rotate(90 32 32)"/>
+    <use href="#tooth" transform="rotate(135 32 32)"/>
+    <use href="#tooth" transform="rotate(180 32 32)"/>
+    <use href="#tooth" transform="rotate(225 32 32)"/>
+    <use href="#tooth" transform="rotate(270 32 32)"/>
+    <use href="#tooth" transform="rotate(315 32 32)"/>
+    <path fill-rule="evenodd" d="M32 11a21 21 0 1 0 0.001 0z M32 23a9 9 0 1 1 -0.001 0z"/>
+  </g>
+</svg>

@@ -4,6 +4,12 @@ import { gameController } from "../../state/gameController";
 import { FilterTheTraffic } from "../games/FilterTheTraffic";
 import { SaveTheServer } from "../games/SaveTheServer";
 import { PatchTheServer } from "../games/PatchTheServer";
+import { SettingsPanel } from "./SettingsPanel";
+import { DIFFICULTY_COLOR, scoreMultiplier, settings } from "../../state/settings";
+import { formatMultiplier, t } from "../../utils/i18n";
+import { eventToCanvas } from "../../utils/handInput";
+import { cachedDrawing } from "../../utils/sprites";
+import { MIN_FRAME_MS } from "../../utils/gameUi";
 
 interface Rect { x: number, y: number, w: number, h: number }
 interface HandPoint { x: number, y: number }      // normalized, already mirrored
@@ -14,6 +20,7 @@ export class Menu {
     // --- tuning ---
     private readonly SIDE_HOLD_MS = 900;          // hold a hand on a side card to scroll to it
     private readonly START_HOLD_MS = 1500;        // hold a hand on the start button to launch
+    private readonly SETTINGS_HOLD_MS = 1100;     // hold a hand on the gear button to open the settings
     private readonly SWIPE_MIN_DX = 0.18;         // normalized horizontal travel that counts as a swipe
     private readonly SWIPE_MAX_SLOPE = 0.6;       // |dy| / |dx| above this is not a horizontal swipe
     private readonly SWIPE_WINDOW_MS = 450;
@@ -32,6 +39,7 @@ export class Menu {
     private readonly START_W = 290;
     private readonly START_H = 76;
     private readonly START_CENTER_Y = 530;
+    private readonly SETTINGS_RECT: Rect = { x: 716, y: 24, w: 224, h: 62 };
 
     private cvWidth: number;
     private cvHeight: number;
@@ -56,6 +64,14 @@ export class Menu {
     private swipeFlash = { dir: 0, until: 0 };
     private cursors: (HandPoint | null)[] = [null, null];   // smoothed hand positions for drawing
     private launchStartedAt = null as number | null;
+    private settingsHoldMs = 0;
+    private settingsPanel: SettingsPanel | null = null;
+    private gearImage: HTMLImageElement;
+    // after returning to the menu (or closing the settings) the hands must leave every button
+    // first, so a hand still resting where the last button was can't trigger a new one
+    private holdsLocked = true;
+
+    private descriptionLines = new Map<string, string[]>();   // wrapped once per card and language
 
     public game: any = undefined;
 
@@ -67,9 +83,11 @@ export class Menu {
 
         this.icons = menuList.map(element => this.loadImage(element.icon));
         this.badges = menuList.map(element => element.badge ? this.loadImage(element.badge) : null);
+        this.gearImage = this.loadImage("assets/settingsGear.svg");
 
-        // operator shortcuts: arrows to browse, Enter to start
+        // operator shortcuts: arrows to browse, Enter to start, S for settings; mouse/touch works too
         window.addEventListener("keydown", event => this.onKeyDown(event));
+        window.addEventListener("pointerdown", event => this.onPointerDown(event));
     }
 
     private loadImage(src: string): HTMLImageElement {
@@ -86,6 +104,9 @@ export class Menu {
         this.leftHoldMs = 0;
         this.rightHoldMs = 0;
         this.startHoldMs = 0;
+        this.settingsHoldMs = 0;
+        this.holdsLocked = true;
+        this.settingsPanel = null;
         this.swipeHistory = [[], []];
         this.launchStartedAt = null;
         this.lastFrameTime = performance.now();
@@ -96,9 +117,21 @@ export class Menu {
         if (!this.running) return;
 
         const now = performance.now();
+        if (now - this.lastFrameTime < MIN_FRAME_MS) {
+            this.animationId = requestAnimationFrame(() => this.menuLoop());
+            return;
+        }
         const dt = Math.min(now - this.lastFrameTime, 100);
         this.lastFrameTime = now;
         this.time += dt;
+
+        if (this.settingsPanel) {
+            this.settingsPanel.update(dt);
+            this.ctx.clearRect(0, 0, this.cvWidth, this.cvHeight);
+            this.settingsPanel?.draw(this.ctx);     // null when that update closed it
+            this.animationId = requestAnimationFrame(() => this.menuLoop());
+            return;
+        }
 
         const hands = this.getHands();
         if (this.launchStartedAt === null) {
@@ -127,10 +160,9 @@ export class Menu {
     // --- input ---
 
     private getHands(): (HandPoint | null)[] {
-        return [
-            gameController.leftPalm ?? gameController.leftWrist,
-            gameController.rightPalm ?? gameController.rightWrist
-        ].map(landmark => landmark ? { x: (landmark.x * -1) + 1, y: landmark.y } : null);
+        // null while a hand is out of frame
+        return [gameController.leftPalm, gameController.rightPalm]
+            .map(hand => hand ? { x: (hand.x * -1) + 1, y: hand.y } : null);
     }
 
     private detectSwipe(hands: (HandPoint | null)[]): void {
@@ -160,17 +192,28 @@ export class Menu {
 
     private updateHolds(hands: (HandPoint | null)[], dt: number): void {
         const present = hands.filter(hand => hand !== null) as HandPoint[];
+        if (this.holdsLocked) {
+            if (present.some(hand => this.isHandOverAnyButton(hand))) return;
+            this.holdsLocked = false;
+        }
         const hasSides = this.menuList.length > 1;
         const swipeLocked = this.time < this.swipeCooldownUntil;
 
         const overLeft = hasSides && present.some(hand => this.isHandOverRect(hand, this.sideRect(-1)));
         const overRight = hasSides && present.some(hand => this.isHandOverRect(hand, this.sideRect(1)));
         const overStart = present.some(hand => this.isHandOverRect(hand, this.startRect()));
+        const overSettings = present.some(hand => this.isHandOverRect(hand, this.SETTINGS_RECT));
 
         // progress resets as soon as the hand leaves, so a quick pass never triggers anything
         this.leftHoldMs = overLeft && !swipeLocked ? this.leftHoldMs + dt : 0;
         this.rightHoldMs = overRight && !swipeLocked ? this.rightHoldMs + dt : 0;
         this.startHoldMs = overStart ? this.startHoldMs + dt : 0;
+        this.settingsHoldMs = overSettings ? this.settingsHoldMs + dt : 0;
+
+        if (this.settingsHoldMs >= this.SETTINGS_HOLD_MS) {
+            this.openSettings();
+            return;
+        }
 
         if (this.leftHoldMs >= this.SIDE_HOLD_MS) this.scroll(-1);
         else if (this.rightHoldMs >= this.SIDE_HOLD_MS) this.scroll(1);
@@ -186,9 +229,45 @@ export class Menu {
         const target = event.target as HTMLElement | null;
         if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
 
-        if (event.key === "ArrowLeft") this.scroll(-1);
+        if (this.settingsPanel) {
+            if (event.key === "Escape" || event.key === "Enter" || event.key.toLowerCase() === "s") this.closeSettings();
+            return;
+        }
+        if (event.key.toLowerCase() === "s") this.openSettings();
+        else if (event.key === "ArrowLeft") this.scroll(-1);
         else if (event.key === "ArrowRight") this.scroll(1);
         else if (event.key === "Enter") this.launch();
+    }
+
+    private onPointerDown(event: PointerEvent): void {
+        if (!this.running || this.launchStartedAt !== null) return;
+        const point = eventToCanvas(event, this.ctx.canvas, this.cvWidth, this.cvHeight);
+        if (!point) return;
+        if (this.settingsPanel) {
+            this.settingsPanel.pressAt(point.x, point.y);
+            return;
+        }
+        const inside = (rect: Rect) => point.x >= rect.x && point.x <= rect.x + rect.w
+            && point.y >= rect.y && point.y <= rect.y + rect.h;
+        if (inside(this.SETTINGS_RECT)) this.openSettings();
+        else if (inside(this.startRect())) this.launch();
+        else if (this.menuList.length > 1 && inside(this.sideRect(-1))) this.scroll(-1);
+        else if (this.menuList.length > 1 && inside(this.sideRect(1))) this.scroll(1);
+    }
+
+    private openSettings(): void {
+        this.settingsHoldMs = 0;
+        this.settingsPanel = new SettingsPanel(this.cvWidth, this.cvHeight, () => this.closeSettings());
+    }
+
+    private closeSettings(): void {
+        this.settingsPanel = null;
+        this.holdsLocked = true;
+        this.leftHoldMs = 0;
+        this.rightHoldMs = 0;
+        this.startHoldMs = 0;
+        this.settingsHoldMs = 0;
+        this.swipeHistory = [[], []];
     }
 
     private scroll(dir: number): void {
@@ -213,7 +292,7 @@ export class Menu {
     }
 
     private isHandOverAnyButton(hand: HandPoint): boolean {
-        const buttons = [this.startRect()];
+        const buttons = [this.startRect(), this.SETTINGS_RECT];
         if (this.menuList.length > 1) buttons.push(this.sideRect(-1), this.sideRect(1));
         return buttons.some(rect => this.isHandOverRect(hand, rect));
     }
@@ -268,6 +347,7 @@ export class Menu {
         const fade = 1 - launchProgress;
 
         this.drawTitle(fade);
+        this.drawSettingsButton(fade);
         this.drawCards(launchProgress);
         this.drawSwipeFlash();
         this.drawDots(fade);
@@ -276,24 +356,74 @@ export class Menu {
         if (this.launchStartedAt === null) this.drawCursors(hands, dt);
     }
 
+    // the title only changes with the language: drawn once, then blitted
     private drawTitle(fade: number): void {
+        const title = cachedDrawing("menuTitle|" + settings.language, this.cvWidth, 110, ctx => {
+            ctx.font = "bold 34pt Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.lineJoin = "round";
+            ctx.lineWidth = 7;
+            ctx.strokeStyle = "rgba(0,0,0,0.55)";
+            ctx.strokeText(t("chooseGame"), this.cvWidth / 2, 58);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillText(t("chooseGame"), this.cvWidth / 2, 58);
+            ctx.beginPath();
+            ctx.roundRect(this.cvWidth / 2 - 90, 92, 180, 6, [3]);
+            ctx.fillStyle = "#ff462d";
+            ctx.fill();
+        });
+        this.ctx.save();
+        this.ctx.globalAlpha = fade;
+        this.ctx.drawImage(title, 0, 0);
+        this.ctx.restore();
+    }
+
+    // gear pill in the top-right corner; also shows the current difficulty and language
+    private drawSettingsButton(fade: number): void {
         const ctx = this.ctx;
+        const { x, y, w, h } = this.SETTINGS_RECT;
+        const progress = Math.min(1, this.settingsHoldMs / this.SETTINGS_HOLD_MS);
+        const gearX = x + 32;
+        const gearY = y + h / 2;
+
         ctx.save();
         ctx.globalAlpha = fade;
-        ctx.font = "bold 34pt Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.lineJoin = "round";
-        ctx.lineWidth = 7;
-        ctx.strokeStyle = "rgba(0,0,0,0.55)";
-        ctx.strokeText("Válassz játékot!", this.cvWidth / 2, 58);
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillText("Válassz játékot!", this.cvWidth / 2, 58);
-
         ctx.beginPath();
-        ctx.roundRect(this.cvWidth / 2 - 90, 92, 180, 6, [3]);
-        ctx.fillStyle = "#ff462d";
+        ctx.roundRect(x, y, w, h, [h / 2]);
+        ctx.fillStyle = progress > 0 ? "rgba(15,23,42,0.75)" : "rgba(15,23,42,0.55)";
         ctx.fill();
+        ctx.lineWidth = progress > 0 ? 3 : 1.5;
+        ctx.strokeStyle = progress > 0 ? "#FFFFFF" : "rgba(255,255,255,0.4)";
+        ctx.stroke();
+
+        // gear turns slowly, faster while a hand is holding it
+        ctx.save();
+        ctx.translate(gearX, gearY);
+        ctx.rotate(this.time / (progress > 0 ? 250 : 2500));
+        if (this.gearImage.complete && this.gearImage.naturalWidth) ctx.drawImage(this.gearImage, -17, -17, 34, 34);
+        ctx.restore();
+        if (progress > 0) {
+            ctx.beginPath();
+            ctx.arc(gearX, gearY, 24, -Math.PI / 2, -Math.PI / 2 + progress * 2 * Math.PI);
+            ctx.lineWidth = 5;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "#8db600";
+            ctx.stroke();
+        }
+
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 14pt Arial";
+        ctx.fillText(t("settings"), x + 64, y + 22);
+        ctx.font = "bold 11pt Arial";
+        ctx.fillStyle = DIFFICULTY_COLOR[settings.difficulty];
+        const level = t(settings.difficulty) + " " + formatMultiplier(scoreMultiplier());
+        ctx.fillText(level, x + 64, y + 44);
+        const levelW = ctx.measureText(level).width;
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.fillText("· " + settings.language.toUpperCase(), x + 70 + levelW, y + 44);
         ctx.restore();
     }
 
@@ -344,31 +474,22 @@ export class Menu {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.scale(scale, scale);
-        ctx.globalAlpha = alpha;
 
-        // card body with a glow on the focused card
-        ctx.shadowColor = element.color;
-        ctx.shadowBlur = 35 * focus;
-        const gradient = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
-        gradient.addColorStop(0, this.shade(element.color, 0.25));
-        gradient.addColorStop(1, this.shade(element.color, -0.4));
+        // glow on the focused card: baked once per color, faded in with the focus
+        if (focus > 0.01) {
+            const glow = this.cardGlow(element.color);
+            ctx.globalAlpha = alpha * focus;
+            ctx.drawImage(glow, -glow.width / 2, -glow.height / 2);
+        }
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(this.cardBody(index), -w / 2, -h / 2);
         ctx.beginPath();
         ctx.roundRect(-w / 2, -h / 2, w, h, [22]);
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        ctx.shadowBlur = 0;
         ctx.lineWidth = 4;
         ctx.strokeStyle = "rgba(255,255,255," + (0.35 + 0.65 * focus) + ")";
         ctx.stroke();
 
-        // picture
         const iconY = -55;
-        ctx.beginPath();
-        ctx.arc(0, iconY, 68, 0, 2 * Math.PI);
-        ctx.fillStyle = "rgba(255,255,255,0.92)";
-        ctx.fill();
-        this.drawImageFit(this.icons[index], 0, iconY, 96);
-
         const badge = this.badges[index];
         if (badge) {
             const bob = Math.sin(this.time / 300 + index) * 4 * focus;
@@ -379,20 +500,80 @@ export class Menu {
             ctx.lineWidth = 3;
             ctx.strokeStyle = element.color;
             ctx.stroke();
-            this.drawImageFit(badge, 52, iconY + 45 + bob, 38);
+            this.drawImageFit(ctx, badge, 52, iconY + 45 + bob, 38);
         }
 
-        // name and description
-        ctx.fillStyle = "#FFFFFF";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = "bold 22pt Arial";
-        ctx.fillText(element.gameType, 0, 45);
-
-        ctx.globalAlpha = alpha * focus;
-        ctx.font = "13pt Arial";
-        this.wrapText(element.description, w - 40).forEach((line, k) => ctx.fillText(line, 0, 86 + k * 22));
+        if (focus > 0.01) {
+            ctx.globalAlpha = alpha * focus;
+            ctx.fillStyle = "#FFFFFF";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "13pt Arial";
+            this.cardDescription(index).forEach((line, k) => ctx.fillText(line, 0, 86 + k * 22));
+        }
         ctx.restore();
+    }
+
+    // card background, picture and name; re-baked only once the picture has loaded
+    private cardBody(index: number): HTMLCanvasElement {
+        const element = this.menuList[index];
+        const icon = this.icons[index];
+        const loaded = icon.complete && icon.naturalWidth > 0;
+        const w = this.CARD_W;
+        const h = this.CARD_H;
+        return cachedDrawing("menuCard|" + element.gameType + "|" + element.color + "|" + loaded, w, h, ctx => {
+            ctx.translate(w / 2, h / 2);
+            const gradient = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
+            gradient.addColorStop(0, this.shade(element.color, 0.25));
+            gradient.addColorStop(1, this.shade(element.color, -0.4));
+            ctx.beginPath();
+            ctx.roundRect(-w / 2, -h / 2, w, h, [22]);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            const iconY = -55;
+            ctx.beginPath();
+            ctx.arc(0, iconY, 68, 0, 2 * Math.PI);
+            ctx.fillStyle = "rgba(255,255,255,0.92)";
+            ctx.fill();
+            if (loaded) this.drawImageFit(ctx, icon, 0, iconY, 96);
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "bold 22pt Arial";
+            ctx.fillText(element.gameType, 0, 45);
+        });
+    }
+
+    // the glow around a card, without the card itself (shadowBlur runs only here, once)
+    private cardGlow(color: string): HTMLCanvasElement {
+        const pad = 60;
+        const w = this.CARD_W;
+        const h = this.CARD_H;
+        return cachedDrawing("menuCardGlow|" + color, w + pad * 2, h + pad * 2, ctx => {
+            const offset = w + pad * 4;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 35;
+            ctx.shadowOffsetX = offset;
+            ctx.beginPath();
+            ctx.roundRect(pad - offset, pad, w, h, [22]);
+            ctx.fillStyle = "#000000";
+            ctx.fill();
+        });
+    }
+
+    private cardDescription(index: number): string[] {
+        const key = index + "|" + settings.language;
+        let lines = this.descriptionLines.get(key);
+        if (!lines) {
+            this.ctx.save();
+            this.ctx.font = "13pt Arial";
+            lines = this.wrapText(this.menuList[index].description[settings.language], this.CARD_W - 40);
+            this.ctx.restore();
+            this.descriptionLines.set(key, lines);
+        }
+        return lines;
     }
 
     private drawSideArrow(side: number, holdMs: number): void {
@@ -494,13 +675,25 @@ export class Menu {
         ctx.save();
         ctx.globalAlpha = fade;
 
-        ctx.shadowColor = "#8db600";
-        ctx.shadowBlur = 12 + 22 * pulse;
+        // pulsing glow: baked once, faded with alpha instead of animating shadowBlur
+        const pad = 50;
+        const glow = cachedDrawing("menuStartGlow", rect.w + pad * 2, rect.h + pad * 2, glowCtx => {
+            const offset = rect.w + pad * 4;
+            glowCtx.shadowColor = "#8db600";
+            glowCtx.shadowBlur = 30;
+            glowCtx.shadowOffsetX = offset;
+            glowCtx.beginPath();
+            glowCtx.roundRect(pad - offset, pad, rect.w, rect.h, [rect.h / 2]);
+            glowCtx.fillStyle = "#000000";
+            glowCtx.fill();
+        });
+        ctx.globalAlpha = fade * (0.35 + 0.65 * pulse);
+        ctx.drawImage(glow, rect.x - pad, rect.y - pad);
+        ctx.globalAlpha = fade;
         ctx.beginPath();
         ctx.roundRect(rect.x, rect.y, rect.w, rect.h, [rect.h / 2]);
         ctx.fillStyle = "rgba(52,78,0,0.9)";
         ctx.fill();
-        ctx.shadowBlur = 0;
 
         // hold progress fills the button from left to right
         if (progress > 0) {
@@ -519,13 +712,13 @@ export class Menu {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.font = "bold 24pt Arial";
-        ctx.fillText("▶  INDÍTÁS", this.cvWidth / 2, this.START_CENTER_Y);
+        ctx.fillText(t("start"), this.cvWidth / 2, this.START_CENTER_Y);
 
         ctx.font = "bold 13pt Arial";
         ctx.lineJoin = "round";
         ctx.lineWidth = 4;
         ctx.strokeStyle = "rgba(0,0,0,0.55)";
-        const caption = progress > 0 ? "Még egy kicsit..." : "Tartsd rajta a kezed!";
+        const caption = progress > 0 ? t("almostThere") : t("holdYourHand");
         ctx.strokeText(caption, this.cvWidth / 2, rect.y + rect.h + 22);
         ctx.fillText(caption, this.cvWidth / 2, rect.y + rect.h + 22);
         ctx.restore();
@@ -533,10 +726,7 @@ export class Menu {
 
     private drawHint(fade: number): void {
         const ctx = this.ctx;
-        const hints = [
-            "⇆  Lapozás: húzd el a kezed oldalra, vagy tartsd egy szélső kártyán",
-            "✋  Indítás: tartsd a kezed a zöld gombon"
-        ];
+        const hints = [t("hintSwipe"), t("hintStart"), t("hintSettings")];
         const cycle = this.time / this.HINT_SWITCH_MS;
         const index = Math.floor(cycle) % hints.length;
         // fade the text out and in around each switch
@@ -602,12 +792,12 @@ export class Menu {
 
     // --- helpers ---
 
-    private drawImageFit(image: HTMLImageElement, cx: number, cy: number, size: number): void {
+    private drawImageFit(ctx: any, image: HTMLImageElement, cx: number, cy: number, size: number): void {
         if (!image.complete || !image.naturalWidth) return;
         const ratio = image.naturalWidth / image.naturalHeight;
         const w = ratio >= 1 ? size : size * ratio;
         const h = ratio >= 1 ? size / ratio : size;
-        this.ctx.drawImage(image, cx - w / 2, cy - h / 2, w, h);
+        ctx.drawImage(image, cx - w / 2, cy - h / 2, w, h);
     }
 
     private wrapText(text: string, maxWidth: number): string[] {
