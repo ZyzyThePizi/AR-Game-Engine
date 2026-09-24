@@ -2,7 +2,7 @@
 
 Webcam-based, motion-controlled AR mini-game engine built for **Kyndryl Kutatók Éjszakája** (a Hungarian science-outreach event for middle schoolers). Players control the games with their hands. MediaPipe Pose tracks them in the browser, with no controller or AR hardware.
 
-**See [README.md](README.md)** for the full project description, setup, how to play, and the game descriptions. Keep the README's "Games" section updated when you add or change a game.
+**See [README.md](README.md)** for the full project description, setup, how to play, and the game descriptions. Keep the README's "Games" section updated when you add or change a game. The player/operator user guides are [docs/user-guide/USER_GUIDE_EN.md](docs/user-guide/USER_GUIDE_EN.md) and [USER_GUIDE_HU.md](docs/user-guide/USER_GUIDE_HU.md): update both (numbers, controls, screenshots in `docs/user-guide/images/{en,hu}/`) when gameplay or the UI changes.
 
 ## Commands
 

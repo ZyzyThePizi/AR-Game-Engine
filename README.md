@@ -37,6 +37,9 @@ Output is generated in `ar_game/dist/`.
 
 ## How to play
 
+**User guides with screenshots:** [English](docs/user-guide/USER_GUIDE_EN.md) · [Magyar](docs/user-guide/USER_GUIDE_HU.md)
+
+
 1. Stand back far enough from the webcam that your shoulders, arms, and hands are all visible in frame, in a well-lit room.
 2. Enable the webcam and wait for pose tracking to lock on — you'll see landmark dots overlaid on your video feed.
 3. Pick a game from the carousel menu. Your hands show up as round cursors. To browse, swipe a hand sideways at card height, or hold a hand on one of the side cards until its ring fills. To play, hold a hand on the green **INDÍTÁS / START** button until it fills. (Operator shortcuts: ←/→ to browse, Enter to start, S for settings; a mouse click or tap also works.)
