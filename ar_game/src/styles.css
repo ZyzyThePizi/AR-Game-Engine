@@ -101,3 +101,153 @@ footer {
 .detectOnClick img {
     width: 100%;
 }
+/* --- Mikulás theme: falling snow ---
+   Each layer is a tall strip tiled with a pre-drawn snow texture that a CSS transform slides
+   down by exactly one tile (720px) and loops. The browser's compositor moves it on the GPU:
+   no JavaScript, no canvas redraws, so it stays cheap on low-end PCs. */
+
+.snow {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* behind the whole page (the .app section sits above it) */
+.page-snow {
+    position: fixed;
+    z-index: 0;
+    opacity: 0.7;
+}
+
+.snow-layer {
+    position: absolute;
+    left: -24px;
+    right: -24px;
+    top: -720px;
+    bottom: 0;
+    background-repeat: repeat;
+    background-size: 960px 720px;
+    will-change: transform;
+    animation: snow-fall 14s linear infinite;
+}
+
+.snow-far {
+    background-image: url("assets/mikulas/snowFar.svg");
+    animation-duration: 28s;
+    opacity: 0.85;
+}
+
+.snow-near {
+    background-image: url("assets/mikulas/snowNear.svg");
+}
+
+/* a snow drift along the bottom of the camera image, and frosty corners (both static) */
+.snow-drift {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 56px;
+    background: url("assets/mikulas/snowDrift.svg") bottom / 100% 100% no-repeat;
+}
+
+.stage-snow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 0 0, rgba(235, 245, 255, 0.35), transparent 22%),
+        radial-gradient(circle at 100% 0, rgba(235, 245, 255, 0.35), transparent 22%),
+        radial-gradient(circle at 0 100%, rgba(235, 245, 255, 0.45), transparent 26%),
+        radial-gradient(circle at 100% 100%, rgba(235, 245, 255, 0.45), transparent 26%);
+}
+
+/* x sways back and forth while y falls one tile; both ends match, so the loop is seamless */
+@keyframes snow-fall {
+    0% { transform: translate3d(0, 0, 0); }
+    25% { transform: translate3d(16px, 180px, 0); }
+    50% { transform: translate3d(0, 360px, 0); }
+    75% { transform: translate3d(-16px, 540px, 0); }
+    100% { transform: translate3d(0, 720px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .snow-layer {
+        animation: none;
+    }
+}
+
+/* --- Mikulás theme: a twinkling light string and a greeting above the logo --- */
+
+.season {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.lights {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    height: 34px;
+    padding: 0 8px;
+}
+
+/* the wire, sagging between the two ends */
+.lights::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -6px;
+    height: 20px;
+    border-bottom: 2px solid rgba(20, 50, 20, 0.85);
+    border-radius: 0 0 50% 50%;
+}
+
+.lights span {
+    --bulb: #facc15;
+    position: relative;
+    width: 12px;
+    height: 17px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: var(--bulb);
+    box-shadow: 0 0 10px 3px var(--bulb);
+    /* only opacity is animated: the compositor fades the bulb, nothing is repainted */
+    animation: twinkle 1.4s ease-in-out infinite alternate;
+}
+
+.lights span:nth-child(4n + 1) { --bulb: #ef4444; margin-top: 4px; }
+.lights span:nth-child(4n + 2) { --bulb: #22c55e; margin-top: 10px; animation-delay: -0.5s; }
+.lights span:nth-child(4n + 3) { --bulb: #facc15; margin-top: 13px; animation-delay: -0.9s; }
+.lights span:nth-child(4n + 4) { --bulb: #60a5fa; margin-top: 10px; animation-delay: -1.2s; }
+.lights span:first-child,
+.lights span:last-child { margin-top: 0; }
+
+@keyframes twinkle {
+    from { opacity: 1; }
+    to { opacity: 0.35; }
+}
+
+.greeting {
+    font: bold clamp(16px, 1.7vw, 30px) Arial, sans-serif;
+    color: #ffffff;
+    text-align: center;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lights span {
+        animation: none;
+    }
+}
+
+/* narrow or portrait screens: the sidebar becomes a strip, no room for the light string */
+@media (max-aspect-ratio: 4/3) {
+    .lights {
+        display: none;
+    }
+}

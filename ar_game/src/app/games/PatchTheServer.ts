@@ -4,8 +4,8 @@ import * as normalizationUtils from "../../utils/normalizationMethods";
 import { Effects } from "../../utils/effects";
 import * as gameUi from "../../utils/gameUi";
 import { GameOverScreen } from "./GameOverScreen";
-import { byDifficulty, scoreMultiplier } from "../../state/settings";
-import { GameType } from "../../DataTypes/GameTypes";
+import { byDifficulty, byTheme, scoreMultiplier } from "../../state/settings";
+import { GameType, gameName } from "../../DataTypes/GameTypes";
 import { t } from "../../utils/i18n";
 import { PowerUpArt, PowerUpKind, POWER_UP_COLORS } from "../../utils/powerUps";
 import { imageSprite } from "../../utils/sprites";
@@ -43,7 +43,10 @@ export class PatchTheServer {
     private readonly OUTDATE_INTERVAL_MS = byDifficulty({ easy: 3000, medium: 2500, hard: 2100 });
     private readonly MIN_OUTDATE_INTERVAL_MS = 700;
     private readonly HAND_RADIUS = 0.05;
-    private readonly LEADERBOARD_KEY = "patchTheServerLeaderboard";
+    // Mikulás theme ("Shine the Boots"): the servers are boots in the window that get muddy;
+    // holding a hand on one brushes it clean. A boot left dirty gets the virgács instead of
+    // presents. It has its own leaderboard.
+    private readonly LEADERBOARD_KEY = byTheme({ classic: "patchTheServerLeaderboard", mikulas: "shineTheBootsLeaderboard" });
     private readonly SCORE_MULTIPLIER = scoreMultiplier();
     // power-ups follow the pace: none while it is calm, then more often the faster it gets.
     // Freeze is only offered when several servers need help, Hotfix only when one is down and
@@ -92,13 +95,14 @@ export class PatchTheServer {
         this.hudCanvas = gameUi.createHudCanvas(this.cvWidth, this.cvHeight);
         this.hudCtx = this.hudCanvas.getContext("2d")!;
 
+        const art = byTheme({ classic: 'assets/patchServer', mikulas: 'assets/mikulas/boot' });
         this.images = {
-            healthy: this.loadImage('assets/patchServerHealthy.svg'),
-            outdated: this.loadImage('assets/patchServerOutdated.svg'),
-            critical: this.loadImage('assets/patchServerCritical.svg'),
-            dead: this.loadImage('assets/patchServerDead.svg')
+            healthy: this.loadImage(art + 'Healthy.svg'),
+            outdated: this.loadImage(art + 'Outdated.svg'),
+            critical: this.loadImage(art + 'Critical.svg'),
+            dead: this.loadImage(art + 'Dead.svg')
         };
-        this.wrenchImage = this.loadImage('assets/patchWrench.svg');
+        this.wrenchImage = this.loadImage(byTheme({ classic: 'assets/patchWrench.svg', mikulas: 'assets/mikulas/brush.svg' }));
 
         this.initGame();
     }
@@ -501,7 +505,7 @@ export class PatchTheServer {
             ctx: this.ctx,
             cvWidth: this.cvWidth,
             cvHeight: this.cvHeight,
-            gameName: GameType.PatchTheServer,
+            gameName: gameName(GameType.PatchTheServer),
             stats: [
                 { label: t("survivalTime"), value: seconds.toFixed(1) + " s" },
                 { label: t("serversPatched"), value: String(this.patchedCount) }

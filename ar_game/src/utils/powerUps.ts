@@ -1,4 +1,5 @@
 import { createLayer } from "./gameUi";
+import { byTheme } from "../state/settings";
 
 export type PowerUpKind = 'time' | 'freeze' | 'hotfix' | 'repair';
 
@@ -16,6 +17,14 @@ const ICONS: Record<PowerUpKind, string> = {
     repair: "assets/powerRepair.svg"
 };
 
+// Mikulás theme: stopwatch with a Mikulás hat, the same snowflake, a magic star, a snowball
+const MIKULAS_ICONS: Record<PowerUpKind, string> = {
+    time: "assets/mikulas/clock.svg",
+    freeze: "assets/powerFreeze.svg",
+    hotfix: "assets/mikulas/star.svg",
+    repair: "assets/mikulas/snowball.svg"
+};
+
 const SPRITE_RADIUS = 40;       // bubble radius the sprites are drawn at; scaled when drawn
 const GLOW = 14;
 
@@ -28,10 +37,11 @@ export class PowerUpArt {
     private sprites: Partial<Record<PowerUpKind, HTMLCanvasElement>> = {};
 
     constructor(kinds: PowerUpKind[]) {
+        const icons = byTheme({ classic: ICONS, mikulas: MIKULAS_ICONS });
         kinds.forEach(kind => {
             const image = new Image();
             image.onload = () => this.sprites[kind] = this.renderSprite(kind, image);
-            image.src = ICONS[kind];
+            image.src = icons[kind];
             this.images[kind] = image;
         });
     }

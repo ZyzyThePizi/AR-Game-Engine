@@ -1,11 +1,11 @@
-import { MenuElement } from "../../interfaces/MenuElement";
-import { GameType } from "../../DataTypes/GameTypes";
+import { MenuCardArt, MenuElement } from "../../interfaces/MenuElement";
+import { GameType, gameName } from "../../DataTypes/GameTypes";
 import { gameController } from "../../state/gameController";
 import { FilterTheTraffic } from "../games/FilterTheTraffic";
 import { SaveTheServer } from "../games/SaveTheServer";
 import { PatchTheServer } from "../games/PatchTheServer";
 import { SettingsPanel } from "./SettingsPanel";
-import { DIFFICULTY_COLOR, scoreMultiplier, settings } from "../../state/settings";
+import { DIFFICULTY_COLOR, isMikulas, scoreMultiplier, settings } from "../../state/settings";
 import { formatMultiplier, t } from "../../utils/i18n";
 import { eventToCanvas } from "../../utils/handInput";
 import { cachedDrawing } from "../../utils/sprites";
@@ -45,8 +45,7 @@ export class Menu {
     private cvHeight: number;
     private menuList: MenuElement[];
     private ctx: any;
-    private icons: HTMLImageElement[];
-    private badges: (HTMLImageElement | null)[];
+    private images = new Map<string, HTMLImageElement>();     // card pictures of both themes, loaded on first use
 
     private animationId = null as number | null;
     private running = false;
@@ -81,8 +80,6 @@ export class Menu {
         this.menuList = menuList;
         this.ctx = ctx;
 
-        this.icons = menuList.map(element => this.loadImage(element.icon));
-        this.badges = menuList.map(element => element.badge ? this.loadImage(element.badge) : null);
         this.gearImage = this.loadImage("assets/settingsGear.svg");
 
         // operator shortcuts: arrows to browse, Enter to start, S for settings; mouse/touch works too
@@ -94,6 +91,21 @@ export class Menu {
         const image = new Image();
         image.src = src;
         return image;
+    }
+
+    private image(src: string): HTMLImageElement {
+        let image = this.images.get(src);
+        if (!image) {
+            image = this.loadImage(src);
+            this.images.set(src, image);
+        }
+        return image;
+    }
+
+    // the card's look in the current theme
+    private card(index: number): MenuCardArt {
+        const element = this.menuList[index];
+        return isMikulas() && element.mikulas ? element.mikulas : element;
     }
 
     drawMenu() {
@@ -358,8 +370,17 @@ export class Menu {
 
     // the title only changes with the language: drawn once, then blitted
     private drawTitle(fade: number): void {
-        const title = cachedDrawing("menuTitle|" + settings.language, this.cvWidth, 110, ctx => {
-            ctx.font = "bold 34pt Arial";
+        const mikulas = isMikulas();
+        const title = cachedDrawing("menuTitle|" + settings.language + "|" + settings.theme, this.cvWidth, 110, ctx => {
+            // centered over the cards, it must end before the settings pill: shrink long titles
+            // (e.g. "Válassz Mikulás-játékot!") until they fit
+            const maxWidth = 2 * (this.SETTINGS_RECT.x - 24 - this.cvWidth / 2);
+            let size = 34;
+            ctx.font = "bold " + size + "pt Arial";
+            while (size > 16 && ctx.measureText(t("chooseGame")).width > maxWidth) {
+                size--;
+                ctx.font = "bold " + size + "pt Arial";
+            }
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.lineJoin = "round";
@@ -369,9 +390,24 @@ export class Menu {
             ctx.fillStyle = "#FFFFFF";
             ctx.fillText(t("chooseGame"), this.cvWidth / 2, 58);
             ctx.beginPath();
-            ctx.roundRect(this.cvWidth / 2 - 90, 92, 180, 6, [3]);
-            ctx.fillStyle = "#ff462d";
+            ctx.roundRect(this.cvWidth / 2 - 90, 92, 180, mikulas ? 8 : 6, [4]);
+            ctx.fillStyle = mikulas ? "#FFFFFF" : "#ff462d";
             ctx.fill();
+            if (mikulas) {
+                // candy-cane stripes
+                ctx.save();
+                ctx.clip();
+                ctx.fillStyle = "#dc2626";
+                for (let x = this.cvWidth / 2 - 100; x < this.cvWidth / 2 + 100; x += 16) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 100);
+                    ctx.lineTo(x + 8, 100);
+                    ctx.lineTo(x + 16, 92);
+                    ctx.lineTo(x + 8, 92);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
         });
         this.ctx.save();
         this.ctx.globalAlpha = fade;
@@ -467,7 +503,7 @@ export class Menu {
 
     private drawCard(index: number, cx: number, cy: number, scale: number, alpha: number, focus: number): void {
         const ctx = this.ctx;
-        const element = this.menuList[index];
+        const card = this.card(index);
         const w = this.CARD_W;
         const h = this.CARD_H;
 
@@ -477,7 +513,7 @@ export class Menu {
 
         // glow on the focused card: baked once per color, faded in with the focus
         if (focus > 0.01) {
-            const glow = this.cardGlow(element.color);
+            const glow = this.cardGlow(card.color);
             ctx.globalAlpha = alpha * focus;
             ctx.drawImage(glow, -glow.width / 2, -glow.height / 2);
         }
@@ -490,7 +526,7 @@ export class Menu {
         ctx.stroke();
 
         const iconY = -55;
-        const badge = this.badges[index];
+        const badge = card.badge ? this.image(card.badge) : null;
         if (badge) {
             const bob = Math.sin(this.time / 300 + index) * 4 * focus;
             ctx.beginPath();
@@ -498,7 +534,7 @@ export class Menu {
             ctx.fillStyle = "#FFFFFF";
             ctx.fill();
             ctx.lineWidth = 3;
-            ctx.strokeStyle = element.color;
+            ctx.strokeStyle = card.color;
             ctx.stroke();
             this.drawImageFit(ctx, badge, 52, iconY + 45 + bob, 38);
         }
@@ -516,16 +552,17 @@ export class Menu {
 
     // card background, picture and name; re-baked only once the picture has loaded
     private cardBody(index: number): HTMLCanvasElement {
-        const element = this.menuList[index];
-        const icon = this.icons[index];
+        const card = this.card(index);
+        const name = gameName(this.menuList[index].gameType);
+        const icon = this.image(card.icon);
         const loaded = icon.complete && icon.naturalWidth > 0;
         const w = this.CARD_W;
         const h = this.CARD_H;
-        return cachedDrawing("menuCard|" + element.gameType + "|" + element.color + "|" + loaded, w, h, ctx => {
+        return cachedDrawing("menuCard|" + name + "|" + card.color + "|" + loaded, w, h, ctx => {
             ctx.translate(w / 2, h / 2);
             const gradient = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
-            gradient.addColorStop(0, this.shade(element.color, 0.25));
-            gradient.addColorStop(1, this.shade(element.color, -0.4));
+            gradient.addColorStop(0, this.shade(card.color, 0.25));
+            gradient.addColorStop(1, this.shade(card.color, -0.4));
             ctx.beginPath();
             ctx.roundRect(-w / 2, -h / 2, w, h, [22]);
             ctx.fillStyle = gradient;
@@ -542,7 +579,7 @@ export class Menu {
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.font = "bold 22pt Arial";
-            ctx.fillText(element.gameType, 0, 45);
+            ctx.fillText(name, 0, 45);
         });
     }
 
@@ -564,12 +601,12 @@ export class Menu {
     }
 
     private cardDescription(index: number): string[] {
-        const key = index + "|" + settings.language;
+        const key = index + "|" + settings.language + "|" + settings.theme;
         let lines = this.descriptionLines.get(key);
         if (!lines) {
             this.ctx.save();
             this.ctx.font = "13pt Arial";
-            lines = this.wrapText(this.menuList[index].description[settings.language], this.CARD_W - 40);
+            lines = this.wrapText(this.card(index).description[settings.language], this.CARD_W - 40);
             this.ctx.restore();
             this.descriptionLines.set(key, lines);
         }

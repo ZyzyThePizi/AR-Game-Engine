@@ -1,4 +1,4 @@
-import { settings } from "../state/settings";
+import { isMikulas, settings } from "../state/settings";
 
 // All on-screen text in both languages. Game names (GameType values) are never translated.
 // "{name}" placeholders are filled from the params passed to t().
@@ -26,6 +26,10 @@ const TEXTS = {
     settings: { hu: "Beállítások", en: "Settings" },
     language: { hu: "Nyelv", en: "Language" },
     difficulty: { hu: "Nehézség", en: "Difficulty" },
+    theme: { hu: "Téma", en: "Theme" },
+    classic: { hu: "Klasszikus", en: "Classic" },
+    mikulas: { hu: "Mikulás", en: "St. Nicholas" },
+    seasonGreeting: { hu: "Boldog Mikulást!", en: "Happy St. Nicholas Day!" },
     back: { hu: "Kész", en: "Done" },
     easy: { hu: "Könnyű", en: "Easy" },
     medium: { hu: "Közepes", en: "Medium" },
@@ -84,8 +88,25 @@ const TEXTS = {
 
 export type TextKey = keyof typeof TEXTS;
 
+// The Mikulás theme's wording; every other text stays as above.
+const MIKULAS_TEXTS: Partial<Record<TextKey, { hu: string, en: string }>> = {
+    chooseGame: { hu: "Válassz Mikulás-játékot!", en: "Pick a St. Nicholas game!" },
+    getReady: { hu: "Készülj! Ho-ho-ho!", en: "Get ready! Ho ho ho!" },
+    blocked: { hu: "ELOLTVA", en: "PUT OUT" },
+    down: { hu: "VIRGÁCS", en: "SWITCHES" },
+    patched: { hu: "KIPUCOLVA", en: "SHINED" },
+    serverDown: { hu: "Virgács!", en: "Switch!" },
+    serverPatched: { hu: "Ragyog!", en: "Shiny!" },
+    hotfixText: { hu: "VARÁZSCSILLAG! +1 csizma", en: "MAGIC STAR! +1 boot" },
+    attacksBlocked: { hu: "Eloltott tűzgolyó", en: "Fireballs put out" },
+    packagesCaught: { hu: "Elkapott ajándék", en: "Gifts caught" },
+    virusHits: { hu: "Rossz ajándék találat", en: "Naughty hits" },
+    serversPatched: { hu: "Kipucolt csizma", en: "Boots shined" }
+};
+
 export function t(key: TextKey, params?: Record<string, string | number>): string {
-    let text = TEXTS[key][settings.language];
+    const texts = (isMikulas() && MIKULAS_TEXTS[key]) || TEXTS[key];
+    let text = texts[settings.language];
     if (params) {
         Object.keys(params).forEach(name => text = text.replace("{" + name + "}", String(params[name])));
     }

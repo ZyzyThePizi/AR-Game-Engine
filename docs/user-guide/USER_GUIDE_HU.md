@@ -14,7 +14,7 @@ Három mozgással irányítható minijáték webkamerához. A játékosok minden
 2. [Hol álljon a játékos?](#2-hol-álljon-a-játékos)
 3. [Irányítás: kéz, egér, billentyűzet](#3-irányítás-kéz-egér-billentyűzet)
 4. [A menü](#4-a-menü)
-5. [Beállítások: nyelv és nehézség](#5-beállítások-nyelv-és-nehézség)
+5. [Beállítások: nyelv, téma és nehézség](#5-beállítások-nyelv-téma-és-nehézség)
 6. [Egy kör menete](#6-egy-kör-menete)
 7. [A játékok](#7-a-játékok)
    - [Save the Server](#save-the-server)
@@ -95,7 +95,7 @@ Hogy ne legyen véletlen megnyomás: az a kéz, amelyik **már egy gombon pihent
 
 ---
 
-## 5. Beállítások: nyelv és nehézség
+## 5. Beállítások: nyelv, téma és nehézség
 
 ![Beállítások](images/hu/settings.png)
 
@@ -104,6 +104,20 @@ A fogaskerék gombbal nyílik meg (kéztartással, kattintással vagy az **S** b
 ### Nyelv
 
 **Magyar** vagy **English**. Minden felirat átvált, a bal oldali gombok is. A **játékok neve mindkét nyelven ugyanaz marad**.
+
+### Téma
+
+**Klasszikus** vagy **Mikulás**. A Mikulás-téma ünnepi kiadás gyerekeknek december 6-ra: a szabályok, az időzítések és a pontozás ugyanazok, csak a képek és néhány felirat változik.
+
+| Klasszikus | Mikulás | Mit csinál a játékos? |
+|---|---|---|
+| Save the Server | **Save the Snowman** | Elkapja a **tűzgolyókat**, mielőtt megolvasztják a hóembert (a hóember az élettel együtt zsugorodik). A javítókészlet itt **hógolyó**. |
+| Filter the Traffic | **Catch the Gifts** | Elkapja a **játékokat** (maci, építőkocka, labda, baba, könyv). A rossz dolgokhoz ne érjen hozzá, és a vállát se érjék: **virgács, szén, banánhéj, kaktusz**. |
+| Patch the Server | **Shine the Boots** | A **sáros csizmán** (sárga, majd piros) tartja a kezét, hogy kipucolja. Ha egy csizma túl sokáig sáros marad, **virgácsot** kap, és elveszett. A Hotfix itt **varázscsillag**, a Fagyasztás marad hópehely. |
+
+- Hó esik a képre és az oldalra, a bal oldali oszlopban fényfüzér és **Boldog Mikulást!** felirat látszik.
+- A Mikulás-játékoknak **saját ranglistájuk** van: ha visszaváltasz klasszikusra, a régi eredmények ismét látszanak.
+- A téma bármikor átállítható a menüben; egy már futó játék megtartja a kinézetét.
 
 ### Nehézség
 
@@ -170,7 +184,7 @@ A fogaskerék gombbal nyílik meg (kéztartással, kattintással vagy az **S** b
 **Cél:** kapd el a jó csomagokat, a vírusokat pedig tartsd távol a testedtől.
 
 - Fentről zöld **csomagok** esnek. **Érintsd meg őket a kezeddel**, és elkaptad: **+100 pont** (× szorzó).
-- Piros **vírusok** is esnek. A **vállad** körüli szaggatott vonalú terület a tested. Ha egy vírus beleesik, az **−200 pont** (× szorzó). Oldalra lépve kerülheted ki; ha a kezeddel érsz egy vírushoz, az nem számít semmit.
+- Piros **vírusok** is esnek. A **vállad** körüli szaggatott vonalú terület a tested. Ha egy vírus beleesik, az **−200 pont** (× szorzó), és ugyanennyit ér az is, ha **a kezeddel hozzáérsz egy vírushoz**. Oldalra lépve kerüld ki, és tartsd távol tőle a kezed.
 - A leejtett csomagokért nem jár pontlevonás.
 - **Idő:** 60 másodperc, a stopperrel meghosszabbítható.
 - Idővel egyre sűrűbb: játék közben egy második csomag és egy második vírus is beszáll.
@@ -276,7 +290,7 @@ A ranglisták **ebben a böngészőben, ezen a gépen tárolódnak**. Újraindí
 | Nem jelennek meg a kézkurzorok, vagy ugrálnak | Javíts a világításon, és lépj hátrébb, hogy mindkét kar beférjen a képbe. Csak egy ember legyen a képen. Kapcsold be az **Ízületek mutatása** gombot, és nézd meg a zöld kézpöttyöket. |
 | A kéz egy gombon van, de nem történik semmi | Az a kéz már ott pihent, amikor megnyílt a képernyő. Mozdítsd meg egy kicsit, és próbáld újra. |
 | Lassan futnak a játékok | Zárd be a többi programot és böngészőlapot. Ha a videokártya nem használható, az alkalmazás magától a processzorra vált; ez működik, csak lassabb. |
-| A ranglisták törlése | F12 → *Application* → *Local Storage* → az oldal címe, és töröld a `saveTheServerLeaderboard`, `filterTheTrafficLeaderboard` és `patchTheServerLeaderboard` kulcsokat. (Az `arGameSettings` tárolja a nyelvet és a nehézséget.) |
+| A ranglisták törlése | F12 → *Application* → *Local Storage* → az oldal címe, és töröld a `saveTheServerLeaderboard`, `filterTheTrafficLeaderboard` és `patchTheServerLeaderboard` kulcsokat (Mikulás-téma: `saveTheSnowmanLeaderboard`, `catchTheGiftsLeaderboard`, `shineTheBootsLeaderboard`). (Az `arGameSettings` tárolja a nyelvet, a témát és a nehézséget.) |
 
 **Tippek az operátornak**
 
@@ -291,7 +305,7 @@ A ranglisták **ebben a böngészőben, ezen a gépen tárolódnak**. Újraindí
 | | Save the Server | Filter the Traffic | Patch the Server |
 |---|---|---|---|
 | **Cél** | Védd ki a vírusokat | Kapd el a csomagokat, kerüld a vírusokat | Javítsd meg a sárga/piros szervereket |
-| **Hogyan?** | Érintsd meg a vírusokat | Érintsd meg a csomagokat, tartsd távol a vírusokat a válladtól | Tartsd a kezed a szerveren |
+| **Hogyan?** | Érintsd meg a vírusokat | Érintsd meg a csomagokat; a vírusokhoz ne érj, és a válladtól is tartsd távol őket | Tartsd a kezed a szerveren |
 | **Hossz** | 45 mp (+ stopperek) | 60 mp (+ stopperek) | Amíg 5 szerver ki nem esik |
 | **Pontszám** | (élet + 1) × kivédett × 10 | +100 csomagonként, −200 vírustalálatonként | 1 pont túlélt másodpercenként |
 | **Tárgyak** | Stopper, javítókészlet | Stopper | Fagyasztás, Hotfix |

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ar-game",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "ar_game", "start"],
+      "port": 4200
+    }
+  ]
+}

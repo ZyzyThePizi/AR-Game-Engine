@@ -1,4 +1,6 @@
 .app {
+    position: relative;
+    z-index: 1;     /* above the Mikulás page snow */
     display: flex;
     height: 100vh;
     box-sizing: border-box;

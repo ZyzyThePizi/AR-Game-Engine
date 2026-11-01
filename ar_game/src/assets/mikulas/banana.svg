@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- banana peel (bananhej) -->
+  <g stroke="#854d0e" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M30 30 C20 33 10 43 6 57 C16 51 23 45 31 41 Z" fill="#facc15"/>
+    <path d="M34 30 C44 33 54 43 58 57 C48 51 41 45 33 41 Z" fill="#facc15"/>
+    <path d="M27 33 C26 45 29 53 32 61 C35 53 38 45 37 33 Z" fill="#eab308"/>
+    <path d="M27 36 C25 24 27 13 32 6 C37 13 39 24 37 36 Z" fill="#fde047"/>
+  </g>
+  <rect x="30" y="1.5" width="4" height="7" rx="1.5" fill="#57534e"/>
+  <g fill="#78350f"><circle cx="9" cy="54" r="2.2"/><circle cx="55" cy="54" r="2.2"/><circle cx="32" cy="57" r="2"/><circle cx="34" cy="20" r="1.6"/><circle cx="30" cy="27" r="1.3"/></g>
+  <path d="M30 12 C29 18 29 24 30 30" stroke="#fef9c3" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

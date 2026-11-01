@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- fireball that melts the snowman -->
+  <path d="M32 61 C16 61 7 49 8 37 C9 28 14 22 15 13 C20 18 22 21 23 26 C24 16 28 8 33 2 C35 11 40 15 42 21 C44 17 46 14 50 11 C54 19 57 28 56 38 C55 50 47 61 32 61 Z"
+        fill="#f97316" stroke="#9a3412" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M32 58 C21 58 14 50 15 41 C16 34 20 30 21 25 C24 29 25 31 26 34 C27 27 30 21 34 16 C36 23 39 27 41 32 C43 29 44 27 46 25 C49 31 50 36 49 42 C48 51 42 58 32 58 Z"
+        fill="#fb923c"/>
+  <ellipse cx="32" cy="46" rx="12" ry="10.5" fill="#fde047"/>
+  <path d="M24 39 L29.5 42 M40 39 L34.5 42" stroke="#7c2d12" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="27.5" cy="45" r="2.5" fill="#7c2d12"/>
+  <circle cx="36.5" cy="45" r="2.5" fill="#7c2d12"/>
+  <path d="M28 52 Q32 49 36 52" stroke="#7c2d12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+</svg>

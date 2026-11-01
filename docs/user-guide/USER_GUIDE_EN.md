@@ -14,7 +14,7 @@ Three motion-controlled mini-games for the webcam. Players control everything wi
 2. [Where the player should stand](#2-where-the-player-should-stand)
 3. [Controls: hands, mouse, keyboard](#3-controls-hands-mouse-keyboard)
 4. [The menu](#4-the-menu)
-5. [Settings: language and difficulty](#5-settings-language-and-difficulty)
+5. [Settings: language, theme and difficulty](#5-settings-language-theme-and-difficulty)
 6. [How a round goes](#6-how-a-round-goes)
 7. [The games](#7-the-games)
    - [Save the Server](#save-the-server)
@@ -95,7 +95,7 @@ To avoid accidents, a hand that is **already resting on a button when a new scre
 
 ---
 
-## 5. Settings: language and difficulty
+## 5. Settings: language, theme and difficulty
 
 ![Settings](images/en/settings.png)
 
@@ -104,6 +104,20 @@ Open it with the gear button (hand hold, click, or **S**). Choose an option by h
 ### Language
 
 **Magyar** or **English**. All text changes, including the buttons in the left column. The **game names stay the same** in both languages.
+
+### Theme
+
+**Classic** or **St. Nicholas** (Mikulás). The Mikulás theme is a St. Nicholas Day (6 December) edition for kids: the rules, timings and scoring stay the same, only the pictures and some texts change.
+
+| Classic | Mikulás | What the player does |
+|---|---|---|
+| Save the Server | **Save the Snowman** | Catch the **fireballs** before they melt the snowman (it shrinks as it loses health). The repair kit is a **snowball**. |
+| Filter the Traffic | **Catch the Gifts** | Catch the **toys** (teddy bear, building brick, ball, doll, book). Don't touch the naughty things and keep them off your shoulders: **birch switch, coal, banana peel, cactus**. |
+| Patch the Server | **Shine the Boots** | Hold a hand on a **muddy boot** (yellow, then red) to brush it clean. A boot left dirty gets the **virgács** and is lost. Hotfix is a **magic star**, Freeze stays a snowflake. |
+
+- Snow falls over the picture and the page, and the left column shows a light string and **Happy St. Nicholas Day!**.
+- The Mikulás games have **their own leaderboards**: switching the theme back shows the classic scores again.
+- The theme can be changed any time in the menu; a game already running keeps its look.
 
 ### Difficulty
 
@@ -170,7 +184,7 @@ Open it with the gear button (hand hold, click, or **S**). Choose an option by h
 **Goal:** catch the good packages and keep the viruses away from your body.
 
 - Green **packages** fall from the top. **Touch them with your hand** to catch them: **+100 points** (× multiplier).
-- Red **viruses** fall too. The dashed zone around your **shoulders** is your body. A virus that falls into it costs **−200 points** (× multiplier). Dodge it by moving sideways; touching a virus with your hand does nothing.
+- Red **viruses** fall too. The dashed zone around your **shoulders** is your body. A virus that falls into it costs **−200 points** (× multiplier), and so does **touching a virus with your hand**. Dodge viruses by moving sideways and keep your hands away from them.
 - Missed packages cost nothing.
 - **Time:** 60 seconds, extendable with the stopwatch.
 - It gets busier over time: a second package and a second virus join during the game.
@@ -276,7 +290,7 @@ The leaderboards are **stored in this browser on this computer**. They survive a
 | The hand cursors don't appear or jump around | Improve the lighting and step back so both arms fit in the picture. Make sure only one person is visible. Turn on **Show joints** to check the green hand dots. |
 | A hand on a button does nothing | That hand was resting there when the screen opened. Move it a little and try again. |
 | The games run slowly | Close other programs and browser tabs. The app falls back to the processor automatically if the graphics card can't be used; that works, but it is slower. |
-| Resetting the leaderboards | Press F12 → *Application* → *Local Storage* → the site's address, and delete the keys `saveTheServerLeaderboard`, `filterTheTrafficLeaderboard` and `patchTheServerLeaderboard`. (`arGameSettings` holds the language and difficulty.) |
+| Resetting the leaderboards | Press F12 → *Application* → *Local Storage* → the site's address, and delete the keys `saveTheServerLeaderboard`, `filterTheTrafficLeaderboard` and `patchTheServerLeaderboard` (Mikulás theme: `saveTheSnowmanLeaderboard`, `catchTheGiftsLeaderboard`, `shineTheBootsLeaderboard`). (`arGameSettings` holds the language, theme and difficulty.) |
 
 **Operator tips**
 
@@ -291,8 +305,8 @@ The leaderboards are **stored in this browser on this computer**. They survive a
 | | Save the Server | Filter the Traffic | Patch the Server |
 |---|---|---|---|
 | **Goal** | Block the viruses | Catch packages, dodge viruses | Patch yellow/red servers |
-| **How** | Touch viruses | Touch packages, keep viruses off your shoulders | Hold your hand on a server |
+| **How** | Touch viruses | Touch packages; don't touch viruses, keep them off your shoulders | Hold your hand on a server |
 | **Length** | 45 s (+ stopwatches) | 60 s (+ stopwatches) | Until 5 servers are down |
-| **Score** | (health + 1) × blocked × 10 | +100 per package, −200 per virus hit | 1 point per second survived |
+| **Score** | (health + 1) × blocked × 10 | +100 per package, −200 per virus that hits a hand or the shoulders | 1 point per second survived |
 | **Pickups** | Stopwatch, repair kit | Stopwatch | Freeze, Hotfix |
 | **Multiplier** | Easy ×0.5 · Medium ×1 · Hard ×1.5 | same | same |

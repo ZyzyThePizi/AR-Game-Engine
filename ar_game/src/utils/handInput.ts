@@ -37,7 +37,7 @@ export function eventToCanvas(event: MouseEvent, canvas: HTMLCanvasElement, cvWi
 
 // 1€ filter (Casiez et al.): smooths hard while the hand is still (no jitter on a key) and
 // barely at all while it moves fast (no lag when crossing the screen).
-class OneEuroFilter {
+export class OneEuroFilter {
     private x: number | null = null;
     private dx = 0;
 

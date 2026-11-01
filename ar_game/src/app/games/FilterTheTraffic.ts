@@ -4,16 +4,31 @@ import * as normalizationUtils from "../../utils/normalizationMethods";
 import { Effects } from "../../utils/effects";
 import * as gameUi from "../../utils/gameUi";
 import { GameOverScreen } from "./GameOverScreen";
-import { byDifficulty, scoreMultiplier } from "../../state/settings";
-import { GameType } from "../../DataTypes/GameTypes";
+import { byDifficulty, byTheme, isMikulas, scoreMultiplier } from "../../state/settings";
+import { GameType, gameName } from "../../DataTypes/GameTypes";
 import { t } from "../../utils/i18n";
 import { PowerUpArt, POWER_UP_COLORS } from "../../utils/powerUps";
 import { glowSprite, imageSprite } from "../../utils/sprites";
 
 type ItemKind = 'package' | 'virus';
 
+// What falls: the friendly package and the virus, or in the Mikulás theme ("Catch the Gifts")
+// a random toy to catch and a random naughty thing to dodge
+const ITEM_ART: Record<ItemKind, { classic: string[], mikulas: string[] }> = {
+    package: {
+        classic: ["assets/friendlyPackage.svg"],
+        mikulas: ["assets/mikulas/teddy.svg", "assets/mikulas/brick.svg", "assets/mikulas/ball.svg",
+            "assets/mikulas/doll.svg", "assets/mikulas/book.svg"]
+    },
+    virus: {
+        classic: ["assets/nonFriendlyVirus.svg"],
+        mikulas: ["assets/mikulas/rod.svg", "assets/mikulas/coal.svg", "assets/mikulas/banana.svg", "assets/mikulas/cactus.svg"]
+    }
+};
+
 interface FallingItem {
     kind: ItemKind,
+    image: HTMLImageElement,
     baseX: number,
     y: number,
     speed: number,      // px per second
@@ -45,7 +60,9 @@ export class FilterTheTraffic {
     private readonly CLOCK_SPEED = 90;           // px per second, a bit slower than packages
     private readonly CLOCK_RADIUS = 34;
     private readonly TIME_FLASH_MS = 900;
-    private readonly LEADERBOARD_KEY = "filterTheTrafficLeaderboard";
+    // the Mikulás edition gets its own leaderboard
+    private readonly LEADERBOARD_KEY = byTheme({ classic: "filterTheTrafficLeaderboard", mikulas: "catchTheGiftsLeaderboard" });
+    private readonly mikulas = isMikulas();
 
     private cvWidth: number;
     private cvHeight: number;
@@ -53,11 +70,11 @@ export class FilterTheTraffic {
     private hudCanvas: HTMLCanvasElement;
     private hudCtx: any;
     private effects = new Effects();
-    private images: Record<ItemKind, HTMLImageElement>;
+    private images: Record<ItemKind, HTMLImageElement[]>;
 
     private items: FallingItem[] = [];
     private caught = 0;
-    private bodyHits = 0;
+    private badHits = 0;           // bad items that touched a hand or the shoulders
     private bodyFlashMs = 0;
     private powerUpArt = new PowerUpArt(['time']);
     private clock: FallingClock | null = null;
@@ -81,8 +98,8 @@ export class FilterTheTraffic {
         this.hudCtx = this.hudCanvas.getContext("2d")!;
 
         this.images = {
-            package: this.loadImage('assets/friendlyPackage.svg'),
-            virus: this.loadImage('assets/nonFriendlyVirus.svg')
+            package: byTheme(ITEM_ART.package).map(src => this.loadImage(src)),
+            virus: byTheme(ITEM_ART.virus).map(src => this.loadImage(src))
         };
 
         this.initGame();
@@ -148,8 +165,10 @@ export class FilterTheTraffic {
     }
 
     private createItem(kind: ItemKind): FallingItem {
+        const images = this.images[kind];
         return {
             kind: kind,
+            image: images[Math.floor(Math.random() * images.length)],
             baseX: this.getRandomInt(this.ITEM_RADIUS + this.SWAY_PX, this.cvWidth - this.ITEM_RADIUS - this.SWAY_PX),
             y: -this.ITEM_RADIUS - Math.random() * 150,
             speed: kind === 'package' ? this.PACKAGE_SPEED : this.VIRUS_SPEED,
@@ -187,10 +206,12 @@ export class FilterTheTraffic {
                 this.effects.burst(x, item.y, "#22c55e");
                 this.effects.floatText(x, item.y - 35, "+" + this.PACKAGE_POINTS, "#22c55e");
                 this.respawn(item);
-            } else if (item.kind === 'virus' && body && this.isCircleOverlapWithRectangle(circle, body)) {
-                this.bodyHits++;
+            } else if (item.kind === 'virus' && (this.isOnBody(circle, body) || hands.some(hand => this.isCircleOverlap(circle, hand)))) {
+                // a bad item costs points whether it lands on the shoulders or the player grabs it
+                const onBody = this.isOnBody(circle, body);
+                this.badHits++;
                 gameController.score -= this.VIRUS_PENALTY;
-                this.bodyFlashMs = this.BODY_FLASH_MS;
+                if (onBody) this.bodyFlashMs = this.BODY_FLASH_MS;
                 this.effects.burst(x, item.y, gameUi.COLORS.danger, 22);
                 this.effects.floatText(x, item.y - 35, "-" + this.VIRUS_PENALTY, gameUi.COLORS.danger);
                 this.respawn(item);
@@ -247,6 +268,10 @@ export class FilterTheTraffic {
     private getBodyZone(): ObjectCoordinates | null {
         if (!gameController.leftShoulder || !gameController.rightShoulder) return null;
         return normalizationUtils.getNormalizedShoulders();
+    }
+
+    private isOnBody(circle: ObjectCoordinates, body: ObjectCoordinates | null): boolean {
+        return !!body && this.isCircleOverlapWithRectangle(circle, body);
     }
 
     private isCircleOverlap(circle1: ObjectCoordinates, circle2: ObjectCoordinates): boolean {
@@ -308,7 +333,7 @@ export class FilterTheTraffic {
     }
 
     private drawItem(item: FallingItem): void {
-        const image = this.images[item.kind];
+        const image = item.image;
         const r = this.ITEM_RADIUS;
         const sprite = imageSprite(image, r * 2, r * 2);
         if (!sprite) return;
@@ -320,7 +345,8 @@ export class FilterTheTraffic {
 
         ctx.save();
         ctx.translate(x, item.y);
-        ctx.rotate(item.kind === 'virus' ? item.angle : Math.sin(item.angle) * 0.3);
+        // the virus tumbles; packages and Mikulás items only rock, so they stay recognizable
+        ctx.rotate(item.kind === 'virus' && !this.mikulas ? item.angle : Math.sin(item.angle) * 0.3);
         if (glow) {
             ctx.globalAlpha = 0.75 + 0.25 * Math.sin(this.elapsedMs / 200 + item.swayPhase);
             ctx.drawImage(glow.canvas, -r - glow.pad, -r - glow.pad);
@@ -360,10 +386,10 @@ export class FilterTheTraffic {
             ctx: this.ctx,
             cvWidth: this.cvWidth,
             cvHeight: this.cvHeight,
-            gameName: GameType.FilterTheTraffic,
+            gameName: gameName(GameType.FilterTheTraffic),
             stats: [
                 { label: t("packagesCaught"), value: String(this.caught) },
-                { label: t("virusHits"), value: String(this.bodyHits) }
+                { label: t("virusHits"), value: String(this.badHits) }
             ],
             score: score,
             leaderboardKey: this.LEADERBOARD_KEY

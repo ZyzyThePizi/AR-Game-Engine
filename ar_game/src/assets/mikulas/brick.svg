@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- toy building brick (Lego) -->
+  <g fill="#2563eb" stroke="#1e3a8a" stroke-width="2.5" stroke-linejoin="round">
+    <rect x="9" y="13" width="12" height="11" rx="1.5"/>
+    <rect x="26" y="13" width="12" height="11" rx="1.5"/>
+    <rect x="43" y="13" width="12" height="11" rx="1.5"/>
+    <rect x="5" y="22" width="54" height="34" rx="3"/>
+  </g>
+  <g fill="#60a5fa" stroke="#1e3a8a" stroke-width="2">
+    <ellipse cx="15" cy="13" rx="6" ry="2.4"/>
+    <ellipse cx="32" cy="13" rx="6" ry="2.4"/>
+    <ellipse cx="49" cy="13" rx="6" ry="2.4"/>
+  </g>
+  <rect x="9" y="26" width="46" height="4" rx="2" fill="#93c5fd" opacity="0.8"/>
+  <rect x="6.5" y="47" width="51" height="7.5" rx="2.5" fill="#1e40af" opacity="0.55"/>
+</svg>

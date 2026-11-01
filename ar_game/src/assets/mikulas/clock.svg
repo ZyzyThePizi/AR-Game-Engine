@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- stopwatch with a Mikulás hat -->
+  <rect x="47" y="11" width="8" height="5" rx="2" fill="#b45309" transform="rotate(45 51 13.5)"/>
+  <circle cx="32" cy="37" r="24" fill="#f59e0b"/>
+  <circle cx="32" cy="37" r="24" fill="none" stroke="#b45309" stroke-width="3"/>
+  <circle cx="32" cy="37" r="18.5" fill="#fffbeb"/>
+  <g stroke="#78350f" stroke-width="2.5" stroke-linecap="round">
+    <line x1="47.5" y1="37" x2="44" y2="37"/>
+    <line x1="32" y1="52.5" x2="32" y2="49"/>
+    <line x1="16.5" y1="37" x2="20" y2="37"/>
+  </g>
+  <path d="M32 37 L32 22 A15 15 0 0 1 45 29.5 Z" fill="#dc2626" opacity="0.45"/>
+  <line x1="32" y1="37" x2="41" y2="28" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+  <line x1="32" y1="37" x2="32" y2="26" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="37" r="3" fill="#78350f"/>
+  <g transform="rotate(-12 30 14)">
+    <path d="M16 20 Q20 2 38 2 Q50 3 52 14 Q46 12 44 20 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="52" cy="15" r="4.5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+    <rect x="12" y="16" width="38" height="8" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+  </g>
+</svg>

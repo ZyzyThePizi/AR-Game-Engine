@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- shoe brush (cipőkefe) -->
+  <g transform="rotate(-18 32 34)">
+    <rect x="10" y="36" width="44" height="14" rx="2" fill="#1f2937"/>
+    <g stroke="#4b5563" stroke-width="1.6"><path d="M16 38 V50"/><path d="M22 38 V50"/><path d="M28 38 V50"/><path d="M34 38 V50"/><path d="M40 38 V50"/><path d="M46 38 V50"/></g>
+    <rect x="6" y="20" width="52" height="18" rx="8" fill="#b45309" stroke="#713f12" stroke-width="3"/>
+    <path d="M14 25 H44" stroke="#fcd34d" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+  </g>
+  <path d="M52 6 L54 12 L60 14 L54 16 L52 22 L50 16 L44 14 L50 12 Z" fill="#fef08a" stroke="#ca8a04" stroke-width="1.2"/>
+</svg>

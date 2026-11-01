@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- magic star: relights a dark tree -->
+  <polygon points="32,7 38.8,24.7 57.7,25.7 42.9,37.6 47.9,55.8 32,45.5 16.1,55.8 21.1,37.6 6.3,25.7 25.2,24.7"
+           fill="#facc15" stroke="#a16207" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="28.5" y="25" width="7" height="20" rx="2" fill="#ffffff"/>
+  <rect x="22" y="31.5" width="20" height="7" rx="2" fill="#ffffff"/>
+</svg>

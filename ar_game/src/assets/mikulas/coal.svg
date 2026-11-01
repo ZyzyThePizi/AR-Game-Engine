@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- lump of coal (szen) -->
+  <path d="M10 31 L19 13 L36 7 L51 15 L58 32 L51 51 L34 58 L16 51 Z" fill="#27272a" stroke="#09090b" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M19 13 L30 28 L36 7 Z" fill="#3f3f46"/>
+  <path d="M30 28 L58 32 L51 15 L36 7 Z" fill="#52525b"/>
+  <path d="M30 28 L34 58 L16 51 L10 31 Z" fill="#18181b"/>
+  <g stroke="#a1a1aa" stroke-width="2" stroke-linecap="round"><path d="M39 12 L47 17"/><path d="M22 17 L26 22"/><path d="M50 36 L53 42"/></g>
+  <path d="M22 37 L29 40 M42 40 L35 37" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="27" cy="43" r="2.3" fill="#f87171"/>
+  <circle cx="37" cy="43" r="2.3" fill="#f87171"/>
+</svg>

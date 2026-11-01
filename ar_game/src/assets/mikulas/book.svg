@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- book (konyv) -->
+  <rect x="13" y="9" width="44" height="49" rx="3" fill="#f8fafc" stroke="#1f2937" stroke-width="2.5"/>
+  <g stroke="#cbd5e1" stroke-width="1.2"><path d="M53 13 V55"/><path d="M50 56 H17"/></g>
+  <rect x="7" y="5" width="44" height="49" rx="3" fill="#16a34a" stroke="#14532d" stroke-width="2.5"/>
+  <rect x="7" y="5" width="9" height="49" rx="3" fill="#15803d" stroke="#14532d" stroke-width="2.5"/>
+  <rect x="21" y="14" width="24" height="4.5" rx="2" fill="#fde047"/>
+  <rect x="24" y="22" width="18" height="3.5" rx="1.7" fill="#fde047"/>
+  <path d="M33 31 L35.5 37 L42 37 L37 41 L39 47.5 L33 43.5 L27 47.5 L29 41 L24 37 L30.5 37 Z" fill="#fde047"/>
+  <path d="M41 52 L41 63 L44 60 L47 63 L47 52 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

@@ -3,7 +3,7 @@ import * as gameUi from "../../utils/gameUi";
 import { formatMultiplier, t } from "../../utils/i18n";
 import {
     DIFFICULTIES, DIFFICULTY_COLOR, Difficulty, DIFFICULTY_MULTIPLIER, Language, LANGUAGES,
-    setDifficulty, setLanguage, settings
+    setDifficulty, setLanguage, setTheme, settings, Theme, THEMES
 } from "../../state/settings";
 
 interface Option extends DwellTarget {
@@ -11,7 +11,7 @@ interface Option extends DwellTarget {
     isSelected: () => boolean
 }
 
-// Settings overlay opened from the menu's gear button: language and difficulty, chosen by
+// Settings overlay opened from the menu's gear button: language, theme and difficulty, chosen by
 // holding a hand on an option (or clicking it). The panel is redrawn into an offscreen layer
 // only when a setting changes; each frame just blits it and adds the hover progress.
 export class SettingsPanel {
@@ -22,11 +22,14 @@ export class SettingsPanel {
     // --- layout (canvas px); everything stays above ~83% of the height, where resting hands hang ---
     private readonly PANEL = { x: 110, y: 34, w: 740, h: 560 };
     private readonly LANGUAGE_NAMES: Record<Language, string> = { hu: "Magyar", en: "English" };
+    private readonly THEME_ICONS: Record<Theme, string> = { classic: "assets/server.svg", mikulas: "assets/mikulas/hat.svg" };
+    private readonly THEME_COLORS: Record<Theme, string> = { classic: gameUi.COLORS.brand, mikulas: "#dc2626" };
 
     private input: DwellInput;
     private layer: { canvas: HTMLCanvasElement, ctx: any };
     private options: Option[];
     private gearImage: HTMLImageElement;
+    private themeImages: Record<Theme, HTMLImageElement>;
     private time = 0;
 
     constructor(private cvWidth: number, private cvHeight: number, private onClose: () => void) {
@@ -35,8 +38,19 @@ export class SettingsPanel {
         this.gearImage = new Image();
         this.gearImage.src = "assets/settingsGear.svg";
         this.gearImage.onload = () => this.render();
+        this.themeImages = {
+            classic: this.loadImage(this.THEME_ICONS.classic),
+            mikulas: this.loadImage(this.THEME_ICONS.mikulas)
+        };
         this.options = this.buildOptions();
         this.render();
+    }
+
+    private loadImage(src: string): HTMLImageElement {
+        const image = new Image();
+        image.onload = () => this.render();
+        image.src = src;
+        return image;
     }
 
     private buildOptions(): Option[] {
@@ -46,16 +60,24 @@ export class SettingsPanel {
         const languageW = (inner - 20) / 2;
         const languages = LANGUAGES.map((language, i): Option => ({
             id: "lang_" + language,
-            rect: { x: left + i * (languageW + 20), y: 162, w: languageW, h: 78 },
+            rect: { x: left + i * (languageW + 20), y: 150, w: languageW, h: 64 },
             holdMs: this.OPTION_HOLD_MS,
             select: () => setLanguage(language),
             isSelected: () => settings.language === language
         }));
 
+        const themes = THEMES.map((theme, i): Option => ({
+            id: "theme_" + theme,
+            rect: { x: left + i * (languageW + 20), y: 254, w: languageW, h: 64 },
+            holdMs: this.OPTION_HOLD_MS,
+            select: () => setTheme(theme),
+            isSelected: () => settings.theme === theme
+        }));
+
         const difficultyW = (inner - 40) / 3;
         const difficulties = DIFFICULTIES.map((difficulty, i): Option => ({
             id: "diff_" + difficulty,
-            rect: { x: left + i * (difficultyW + 20), y: 300, w: difficultyW, h: 150 },
+            rect: { x: left + i * (difficultyW + 20), y: 358, w: difficultyW, h: 118 },
             holdMs: this.OPTION_HOLD_MS,
             select: () => setDifficulty(difficulty),
             isSelected: () => settings.difficulty === difficulty
@@ -63,12 +85,12 @@ export class SettingsPanel {
 
         const done: Option = {
             id: "done",
-            rect: { x: this.cvWidth / 2 - 140, y: 506, w: 280, h: 64 },
+            rect: { x: this.cvWidth / 2 - 140, y: 518, w: 280, h: 58 },
             holdMs: this.DONE_HOLD_MS,
             select: () => this.onClose(),
             isSelected: () => false
         };
-        return [...languages, ...difficulties, done];
+        return [...languages, ...themes, ...difficulties, done];
     }
 
     reset(): void {
@@ -138,11 +160,13 @@ export class SettingsPanel {
         ctx.fillStyle = "#FFFFFF";
         ctx.fillText(title, titleX + 52, 85);
 
-        this.drawSectionLabel(ctx, t("language"), 146);
-        this.drawSectionLabel(ctx, t("difficulty"), 284);
+        this.drawSectionLabel(ctx, t("language"), 136);
+        this.drawSectionLabel(ctx, t("theme"), 240);
+        this.drawSectionLabel(ctx, t("difficulty"), 344);
 
         this.options.forEach(option => {
             if (option.id.startsWith("lang_")) this.renderLanguage(ctx, option, option.id.slice(5) as Language);
+            else if (option.id.startsWith("theme_")) this.renderTheme(ctx, option, option.id.slice(6) as Theme);
             else if (option.id.startsWith("diff_")) this.renderDifficulty(ctx, option, option.id.slice(5) as Difficulty);
             else this.renderDone(ctx, option);
         });
@@ -150,7 +174,7 @@ export class SettingsPanel {
         ctx.textAlign = "center";
         ctx.font = "12pt Arial";
         ctx.fillStyle = "rgba(255,255,255,0.7)";
-        ctx.fillText(t("multiplierInfo"), this.cvWidth / 2, 478);
+        ctx.fillText(t("multiplierInfo"), this.cvWidth / 2, 496);
     }
 
     private drawSectionLabel(ctx: any, text: string, y: number): void {
@@ -211,6 +235,30 @@ export class SettingsPanel {
         ctx.fillText(this.LANGUAGE_NAMES[language], x + 88, cy + 1);
     }
 
+    private renderTheme(ctx: any, option: Option, theme: Theme): void {
+        const { x, y, h } = option.rect;
+        const color = this.THEME_COLORS[theme];
+        this.renderOptionFrame(ctx, option, color);
+
+        const cy = y + h / 2;
+        ctx.beginPath();
+        ctx.arc(x + 48, cy, 24, 0, 2 * Math.PI);
+        ctx.fillStyle = option.isSelected() ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.18)";   // white, so the red hat stands out
+        ctx.fill();
+        const icon = this.themeImages[theme];
+        if (icon.complete && icon.naturalWidth) {
+            const size = 34;
+            const ratio = icon.naturalWidth / icon.naturalHeight;
+            const w = ratio >= 1 ? size : size * ratio;
+            const iconH = ratio >= 1 ? size / ratio : size;
+            ctx.drawImage(icon, x + 48 - w / 2, cy - iconH / 2, w, iconH);
+        }
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textAlign = "left";
+        ctx.font = "bold 20pt Arial";
+        ctx.fillText(t(theme), x + 88, cy + 1);
+    }
+
     private renderDifficulty(ctx: any, option: Option, difficulty: Difficulty): void {
         const { x, y, w } = option.rect;
         const color = DIFFICULTY_COLOR[difficulty];
@@ -220,13 +268,13 @@ export class SettingsPanel {
         ctx.textAlign = "center";
         ctx.fillStyle = "#FFFFFF";
         ctx.font = "bold 18pt Arial";
-        ctx.fillText(t(difficulty), cx, y + 36);
+        ctx.fillText(t(difficulty), cx, y + 28);
         ctx.fillStyle = color;
-        ctx.font = "bold 30pt Arial";
-        ctx.fillText(formatMultiplier(DIFFICULTY_MULTIPLIER[difficulty]), cx, y + 82);
+        ctx.font = "bold 28pt Arial";
+        ctx.fillText(formatMultiplier(DIFFICULTY_MULTIPLIER[difficulty]), cx, y + 64);
         ctx.fillStyle = "rgba(255,255,255,0.8)";
         ctx.font = "12pt Arial";
-        ctx.fillText(t((difficulty + "Info") as "easyInfo" | "mediumInfo" | "hardInfo"), cx, y + 124);
+        ctx.fillText(t((difficulty + "Info") as "easyInfo" | "mediumInfo" | "hardInfo"), cx, y + 98);
     }
 
     private renderDone(ctx: any, option: Option): void {

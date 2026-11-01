@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- birch switch (virgacs) -->
+  <g stroke="#3f2a14" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M30 60 L22 6"/><path d="M31 60 L28 3"/><path d="M33 60 L37 3"/>
+    <path d="M34 60 L44 7"/><path d="M29 60 L14 11"/><path d="M35 60 L51 12"/>
+  </g>
+  <g stroke="#8b5a2b" stroke-width="2.6" stroke-linecap="round" fill="none">
+    <path d="M30 60 L22 6"/><path d="M31 60 L28 3"/><path d="M33 60 L37 3"/>
+    <path d="M34 60 L44 7"/><path d="M29 60 L14 11"/><path d="M35 60 L51 12"/>
+    <path d="M24 19 L17 15"/><path d="M41 21 L47 16"/><path d="M27 13 L24 7"/><path d="M47 25 L54 23"/>
+  </g>
+  <rect x="25" y="37" width="16" height="7" rx="2" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+  <path d="M33 40 C24 30 17 37 23 44 C26 46 30 43 33 40 Z" fill="#ef4444" stroke="#7f1d1d" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M33 40 C42 30 49 37 43 44 C40 46 36 43 33 40 Z" fill="#ef4444" stroke="#7f1d1d" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M31 42 L26 54 M35 42 L40 54" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
+</svg>

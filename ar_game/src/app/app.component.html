@@ -1,5 +1,14 @@
+<!-- Mikulás theme: snow falling behind the whole page (pure CSS animation, no JS per frame) -->
+<div class="snow page-snow" *ngIf="mikulas" aria-hidden="true">
+    <div class="snow-layer snow-near"></div>
+</div>
+
 <section id="demos" class="app invisible">
     <aside class="brand">
+        <div class="season" *ngIf="mikulas">
+            <div class="lights" aria-hidden="true"><span *ngFor="let bulb of lightBulbs"></span></div>
+            <div class="greeting">{{text('seasonGreeting')}}</div>
+        </div>
         <img class="brand-logo" src="assets/kyndryl_logo.png" alt="Kyndryl">
         <!-- buttons drop focus after a click, so the menu's Enter shortcut can't press them again -->
         <div class="controls">
@@ -13,6 +22,12 @@
         <!-- the game world is always 960x720; it is scaled with CSS to fill the stage -->
         <div id="container" [style.transform]="'scale(' + stageScale + ')'">
             <video id="webcam" autoplay playsinline></video>
+            <!-- Mikulás theme: snow over the camera image, under the game canvases -->
+            <div class="snow stage-snow" *ngIf="mikulas" aria-hidden="true">
+                <div class="snow-layer snow-far"></div>
+                <div class="snow-layer snow-near"></div>
+                <div class="snow-drift"></div>
+            </div>
             <canvas class="base_canvas" id="base_canvas"></canvas>
             <canvas class="top_canvas" id="top_canvas"></canvas>
         </div>

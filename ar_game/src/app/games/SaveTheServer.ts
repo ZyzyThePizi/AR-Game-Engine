@@ -2,8 +2,8 @@ import { gameController } from "../../state/gameController";
 import { Effects } from "../../utils/effects";
 import * as gameUi from "../../utils/gameUi";
 import { GameOverScreen } from "./GameOverScreen";
-import { byDifficulty, scoreMultiplier } from "../../state/settings";
-import { GameType } from "../../DataTypes/GameTypes";
+import { byDifficulty, byTheme, isMikulas, scoreMultiplier } from "../../state/settings";
+import { GameType, gameName } from "../../DataTypes/GameTypes";
 import { t } from "../../utils/i18n";
 import { PowerUpArt, POWER_UP_COLORS } from "../../utils/powerUps";
 import { drawSprite, glowSprite, imageSprite } from "../../utils/sprites";
@@ -51,7 +51,20 @@ export class SaveTheServer {
     private readonly REPAIR_RADIUS = 36;
     private readonly HEAL_FLASH_MS = 900;
     private readonly SERVER_GLOW_BLUR = 40;
-    private readonly LEADERBOARD_KEY = "saveTheServerLeaderboard";
+    // Mikulás theme ("Save the Snowman"): fireballs fly at a snowman that shrinks as it melts.
+    // It has its own leaderboard.
+    private readonly LEADERBOARD_KEY = byTheme({ classic: "saveTheServerLeaderboard", mikulas: "saveTheSnowmanLeaderboard" });
+    private readonly mikulas = isMikulas();
+    private readonly MAX_MELT = 0.22;               // snowman height lost at zero health
+    // The snowman's shape in snowman.svg (250x350): its three snowballs and the hat. Fireballs hit
+    // these circles, not the empty corners of the picture's rectangle.
+    private readonly SNOWMAN_CIRCLES = [
+        { x: 125, y: 266, r: 80 },
+        { x: 125, y: 162, r: 60 },
+        { x: 125, y: 84, r: 45 },
+        { x: 130, y: 36, r: 30 }
+    ];
+    private readonly FIREBALL_REACH = 0.7;          // the see-through flame tips don't count as touching
 
     private cvWidth: number;
     private cvHeight: number;
@@ -97,9 +110,9 @@ export class SaveTheServer {
         this.hudCtx = this.hudCanvas.getContext("2d")!;
 
         this.serverImage = new Image();
-        this.serverImage.src = 'assets/server.svg';
+        this.serverImage.src = byTheme({ classic: 'assets/server.svg', mikulas: 'assets/mikulas/snowman.svg' });
         this.virusImage = new Image();
-        this.virusImage.src = 'assets/nonFriendlyVirus.svg';
+        this.virusImage.src = byTheme({ classic: 'assets/nonFriendlyVirus.svg', mikulas: 'assets/mikulas/fireball.svg' });
 
         this.serverLeft = this.cvWidth / 2 - this.SERVER_WIDTH / 2;
         this.serverRight = this.cvWidth / 2 + this.SERVER_WIDTH / 2;
@@ -200,11 +213,33 @@ export class SaveTheServer {
     }
 
     private isVirusOnServer(virus: Virus): boolean {
+        if (this.mikulas) return this.isFireballOnSnowman(virus);
         const closestX = Math.max(this.serverLeft, Math.min(virus.x, this.serverRight));
         const closestY = Math.max(this.serverTop, Math.min(virus.y, this.serverBottom));
         const dx = virus.x - closestX;
         const dy = virus.y - closestY;
         return Math.sqrt(dx * dx + dy * dy) < this.VIRUS_RADIUS;
+    }
+
+    private isFireballOnSnowman(virus: Virus): boolean {
+        const box = this.serverBox();
+        const scaleX = box.w / this.SERVER_WIDTH;
+        const scaleY = box.h / this.SERVER_HEIGHT;
+        const reach = this.VIRUS_RADIUS * this.FIREBALL_REACH;
+        return this.SNOWMAN_CIRCLES.some(ball => {
+            const dx = virus.x - (box.x + ball.x * scaleX);
+            const dy = virus.y - (box.y + ball.y * scaleY);
+            return Math.sqrt(dx * dx + dy * dy) < ball.r * (scaleX + scaleY) / 2 + reach;
+        });
+    }
+
+    // Where the server (snowman) is drawn, without the hit shake. The snowman melts: shorter and
+    // a bit wider as health drops. Drawing and the fireball hits both use this box.
+    private serverBox(): { x: number, y: number, w: number, h: number } {
+        const melt = this.mikulas ? this.MAX_MELT * (1 - this.health / this.MAX_HEALTH) : 0;
+        const w = this.SERVER_WIDTH * (1 + melt * 0.35);
+        const h = this.SERVER_HEIGHT * (1 - melt);
+        return { x: this.cvWidth / 2 - w / 2, y: this.serverBottom - h, w: w, h: h };
     }
 
     private get totalMs(): number {
@@ -367,28 +402,31 @@ export class SaveTheServer {
         const flash = this.hitFlashMs / this.HIT_FLASH_MS;
         const heal = this.healFlashMs / this.HEAL_FLASH_MS;
         const shake = flash > 0 ? Math.sin(this.elapsedMs / 20) * 8 * flash : 0;
-        const x = this.serverLeft + shake;
-        const w = this.SERVER_WIDTH;
-        const h = this.SERVER_HEIGHT;
+        const fullW = this.SERVER_WIDTH;
+        const fullH = this.SERVER_HEIGHT;
+        // the cached sprite is only scaled when the snowman melts, never re-rasterized
+        const box = this.serverBox();
+        const { y, w, h } = box;
+        const x = box.x + shake;
 
-        const server = imageSprite(this.serverImage, w, h);
+        const server = imageSprite(this.serverImage, fullW, fullH);
         if (!server) {
             ctx.fillStyle = "rgba(0, 0, 255, 0.5)";
-            ctx.fillRect(x, this.serverTop, w, h);
+            ctx.fillRect(x, y, w, h);
             return;
         }
 
         // glow in the health color (red while hit, green while repaired): baked once per
         // color, pulsed with alpha instead of an expensive per-frame shadowBlur
         const glowColor = flash > 0 ? gameUi.COLORS.danger : heal > 0 ? POWER_UP_COLORS.repair : this.healthColor();
-        const glow = glowSprite(this.serverImage, w, h, glowColor, this.SERVER_GLOW_BLUR);
+        const glow = glowSprite(this.serverImage, fullW, fullH, glowColor, this.SERVER_GLOW_BLUR);
         ctx.save();
         if (glow) {
             ctx.globalAlpha = Math.min(1, 0.55 + 0.25 * Math.sin(this.elapsedMs / 300) + 0.45 * Math.max(flash, heal));
-            drawSprite(ctx, glow, x, this.serverTop, w, h);
+            drawSprite(ctx, glow, x, y, w, h);
         }
-        ctx.globalAlpha = 0.8;
-        drawSprite(ctx, server, x, this.serverTop, w, h);
+        ctx.globalAlpha = this.mikulas ? 0.95 : 0.8;
+        drawSprite(ctx, server, x, y, w, h);
         ctx.restore();
     }
 
@@ -420,7 +458,8 @@ export class SaveTheServer {
         }
         ctx.globalAlpha = 1;
         ctx.translate(virus.x, virus.y);
-        ctx.rotate(virus.angle);
+        // the fireball keeps its face upright; the virus spins
+        if (!this.mikulas) ctx.rotate(virus.angle);
         const pulse = 1 + 0.08 * Math.sin(this.elapsedMs / 120 + virus.angle);
         ctx.drawImage(sprite.canvas, -r * pulse, -r * pulse, r * 2 * pulse, r * 2 * pulse);
         ctx.restore();
@@ -458,7 +497,7 @@ export class SaveTheServer {
             ctx: this.ctx,
             cvWidth: this.cvWidth,
             cvHeight: this.cvHeight,
-            gameName: GameType.SaveTheServer,
+            gameName: gameName(GameType.SaveTheServer),
             stats: [
                 { label: t("attacksBlocked"), value: String(this.blocked) },
                 { label: t("healthLeft"), value: this.health + " / " + this.MAX_HEALTH }

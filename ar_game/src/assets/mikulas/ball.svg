@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- ball (labda) -->
+  <circle cx="32" cy="32" r="27" fill="#22c55e"/>
+  <path d="M32 5 A27 27 0 0 1 59 32 L32 32 Z" fill="#ef4444"/>
+  <path d="M59 32 A27 27 0 0 1 32 59 L32 32 Z" fill="#3b82f6"/>
+  <path d="M32 59 A27 27 0 0 1 5 32 L32 32 Z" fill="#facc15"/>
+  <circle cx="32" cy="32" r="7" fill="#ffffff" stroke="#1f2937" stroke-width="2"/>
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#1f2937" stroke-width="2.5"/>
+  <path d="M15 22 Q18 14 26 11" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.75"/>
+</svg>

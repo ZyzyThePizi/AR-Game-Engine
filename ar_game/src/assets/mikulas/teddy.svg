@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- teddy bear (maci) -->
+  <g fill="#a0642d" stroke="#3b2110" stroke-width="2.5">
+    <circle cx="17" cy="11" r="7"/>
+    <circle cx="47" cy="11" r="7"/>
+    <ellipse cx="12" cy="40" rx="6" ry="9" transform="rotate(25 12 40)"/>
+    <ellipse cx="52" cy="40" rx="6" ry="9" transform="rotate(-25 52 40)"/>
+    <ellipse cx="21" cy="56" rx="8" ry="6"/>
+    <ellipse cx="43" cy="56" rx="8" ry="6"/>
+    <ellipse cx="32" cy="44" rx="14" ry="15" fill="#b8763a"/>
+    <circle cx="32" cy="22" r="15" fill="#b8763a"/>
+  </g>
+  <g fill="#e8b98a">
+    <circle cx="17" cy="11" r="3.5"/>
+    <circle cx="47" cy="11" r="3.5"/>
+    <ellipse cx="32" cy="47" rx="8" ry="8"/>
+    <ellipse cx="32" cy="27" rx="7" ry="5.5"/>
+  </g>
+  <ellipse cx="32" cy="25" rx="3" ry="2.2" fill="#3b2110"/>
+  <path d="M29 29 Q32 32 35 29" stroke="#3b2110" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <circle cx="26" cy="19" r="2.3" fill="#3b2110"/>
+  <circle cx="38" cy="19" r="2.3" fill="#3b2110"/>
+  <path d="M32 37 L24 33 L24 41 Z M32 37 L40 33 L40 41 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.5" stroke-linejoin="round"/>
+  <circle cx="32" cy="37" r="2.6" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.2"/>
+</svg>

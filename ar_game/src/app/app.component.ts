@@ -1,12 +1,13 @@
 import {Component, ElementRef, HostListener, NgZone, OnInit, ViewChild} from '@angular/core';
 import {ToastrService} from 'ngx-toastr';
-import {DrawingUtils, FilesetResolver, NormalizedLandmark, PoseLandmarker} from '@mediapipe/tasks-vision';
+import {DrawingUtils, FilesetResolver, PoseLandmarker} from '@mediapipe/tasks-vision';
 import {Menu} from "./menu/Menu";
 import {MenuElement} from "../interfaces/MenuElement";
 import {GameType} from "../DataTypes/GameTypes";
 import { gameController } from "../state/gameController";
-import { onSettingsChange, settings } from "../state/settings";
+import { isMikulas, onSettingsChange, settings } from "../state/settings";
 import { t, TextKey } from "../utils/i18n";
+import { PlayerTracker } from "../utils/handTracking";
 
 @Component({
   selector: 'app-root',
@@ -31,8 +32,10 @@ export class AppComponent implements OnInit {
   squeres: MenuElement[];
   drawJoints = false;
   stageScale = 1;
+  readonly lightBulbs = new Array(9);    // the light string above the logo (Mikulás theme)
   isFullscreen = false;
   private mediaStream: MediaStream | null = null;
+  private playerTracker = new PlayerTracker();
 
   constructor(private toastr: ToastrService, private ngZone: NgZone) {
     // init menu data
@@ -43,6 +46,14 @@ export class AppComponent implements OnInit {
         description: {
           hu: "Kapd el a vírusokat, mielőtt elérik a szervert!",
           en: "Catch the viruses before they reach the server!"
+        },
+        mikulas: {
+          color: "#2f80ed",
+          icon: "assets/mikulas/snowman.svg", badge: "assets/mikulas/fireball.svg",
+          description: {
+            hu: "Kapd el a tűzgolyókat, mielőtt megolvasztják a hóembert!",
+            en: "Catch the fireballs before they melt the snowman!"
+          }
         }
       },
       {
@@ -51,6 +62,14 @@ export class AppComponent implements OnInit {
         description: {
           hu: "Gyűjtsd a jó csomagokat, a vírusokat kerüld el!",
           en: "Collect the good packages, dodge the viruses!"
+        },
+        mikulas: {
+          color: "#d62839",
+          icon: "assets/mikulas/gift.svg", badge: "assets/mikulas/coal.svg",
+          description: {
+            hu: "Kapd el a játékokat, a szenet és a virgácsot kerüld el!",
+            en: "Catch the toys, dodge the coal and the birch switch!"
+          }
         }
       },
       {
@@ -59,6 +78,14 @@ export class AppComponent implements OnInit {
         description: {
           hu: "Tartsd a kezed az elavult szervereken, és javítsd meg őket!",
           en: "Hold your hand on outdated servers to patch them!"
+        },
+        mikulas: {
+          color: "#1f8f4e",
+          icon: "assets/mikulas/boot.svg", badge: "assets/mikulas/brush.svg",
+          description: {
+            hu: "Tartsd a kezed a sáros csizmákon, és pucold ki őket!",
+            en: "Hold your hand on muddy boots to shine them!"
+          }
         }
       },
     ];
@@ -71,6 +98,11 @@ export class AppComponent implements OnInit {
   // sidebar texts follow the language chosen in the menu's settings
   text(key: TextKey): string {
     return t(key);
+  }
+
+  // the Mikulás theme adds snow and lights around the games (see the template)
+  get mikulas(): boolean {
+    return isMikulas();
   }
 
   async ngOnInit() {
@@ -186,49 +218,25 @@ export class AppComponent implements OnInit {
   }
 
   private processLandmarks(landmarks: any) {
-    const reducedLandmarks = landmarks.map((landmark: any) => [
-      landmark[11], landmark[12], landmark[13], landmark[14],
-      landmark[15], landmark[16], landmark[17], landmark[18],
-      landmark[19], landmark[20], landmark[21], landmark[22]
-    ]);
-
-    if (!reducedLandmarks[0]) return;
-
-    const [leftShoulder, rightShoulder, , , leftWrist, rightWrist] = reducedLandmarks[0];
-    gameController.leftWrist = leftWrist;
-    gameController.rightWrist = rightWrist;
-    gameController.leftShoulder = leftShoulder;
-    gameController.rightShoulder = rightShoulder;
-    // pose landmarks: 13/14 elbows, 15/16 wrists
-    gameController.leftPalm = this.handPoint(landmarks[0][13], leftWrist);
-    gameController.rightPalm = this.handPoint(landmarks[0][14], rightWrist);
-    // the menu runs its own animation loop and reads the hands from gameController
+    const pose = landmarks[0] ?? null;
+    // steadies the points (dropouts, a bystander, jitter) and writes them into gameController;
+    // the menu and the games run their own loops and read the hands from there
+    this.playerTracker.update(pose, performance.now());
 
     if (this.drawJoints) {
       this.baseCanvasCtx.clearRect(0,0, this.videoWidth, this.videoHeight);
-      reducedLandmarks.forEach((landmark: any) => {
-        this.drawingUtils.drawLandmarks(landmark, { radius: 4, color: 'purple' });
-      });
+      // upper body: shoulders, elbows, wrists, fingers
+      if (pose) this.drawingUtils.drawLandmarks(pose.slice(11, 23), { radius: 4, color: 'purple' });
       // the points the games actually use
       const hands = [gameController.leftPalm, gameController.rightPalm].filter(hand => !!hand);
       this.drawingUtils.drawLandmarks(hands as any, { radius: 9, color: 'lime' });
     }
   }
 
-  // Where the hand is, estimated along the forearm: wrist + 0.35 x (wrist - elbow) lands on the
-  // palm center. The pose model's finger points (pinky/index/thumb) jump around when a hand is
-  // held edge-on, pointed or closed; elbow and wrist stay reliable in every hand pose.
-  // A hand outside the camera frame (e.g. hanging below it) gives no point at all.
-  private handPoint(elbow: any, wrist: any): NormalizedLandmark | null {
-    if (!wrist) return null;
-    const k = elbow ? 0.35 : 0;
-    const x = wrist.x + (wrist.x - (elbow?.x ?? wrist.x)) * k;
-    const y = wrist.y + (wrist.y - (elbow?.y ?? wrist.y)) * k;
-    if (x < -0.02 || x > 1.02 || y < -0.02 || y > 1.02) return null;
-    return { x: x, y: y, z: wrist.z, visibility: wrist.visibility };
+  setDrawJoints(){
+    this.drawJoints = !this.drawJoints;
+    if (!this.drawJoints) this.baseCanvasCtx?.clearRect(0, 0, this.videoWidth, this.videoHeight);
   }
-
-  setDrawJoints(){ this.drawJoints = !this.drawJoints; }
 
   toggleFullscreen() {
     if (document.fullscreenElement) {

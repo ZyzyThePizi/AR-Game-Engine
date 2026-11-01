@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="250" height="350">
+  <!-- snowman with a Santa hat: the thing to protect in Save the Snowman -->
+  <defs>
+    <radialGradient id="snow" cx="0.38" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.65" stop-color="#eef6ff"/>
+      <stop offset="1" stop-color="#b6d4f5"/>
+    </radialGradient>
+  </defs>
+  <!-- stick arms -->
+  <g stroke="#5b3a1e" stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M74 165 L22 120"/><path d="M40 136 L24 140"/><path d="M36 131 L31 113"/>
+    <path d="M176 165 L228 118"/><path d="M211 133 L227 136"/><path d="M215 128 L213 110"/>
+  </g>
+  <!-- body -->
+  <ellipse cx="125" cy="345" rx="80" ry="5" fill="#000000" opacity="0.2"/>
+  <circle cx="125" cy="266" r="80" fill="url(#snow)" stroke="#8aa4c4" stroke-width="3"/>
+  <circle cx="125" cy="162" r="60" fill="url(#snow)" stroke="#8aa4c4" stroke-width="3"/>
+  <circle cx="125" cy="84" r="45" fill="url(#snow)" stroke="#8aa4c4" stroke-width="3"/>
+  <!-- coal buttons -->
+  <g fill="#1f2937"><circle cx="125" cy="150" r="7"/><circle cx="125" cy="178" r="7"/><circle cx="125" cy="206" r="6"/><circle cx="125" cy="240" r="7"/><circle cx="125" cy="272" r="7"/></g>
+  <!-- face -->
+  <g fill="#1f2937"><circle cx="109" cy="76" r="6"/><circle cx="141" cy="76" r="6"/></g>
+  <circle cx="111" cy="74" r="2" fill="#ffffff"/><circle cx="143" cy="74" r="2" fill="#ffffff"/>
+  <path d="M125 86 L166 95 L125 98 Z" fill="#f97316" stroke="#c2410c" stroke-width="2.5" stroke-linejoin="round"/>
+  <g fill="#1f2937"><circle cx="105" cy="104" r="3.4"/><circle cx="114" cy="110" r="3.4"/><circle cx="125" cy="112" r="3.4"/><circle cx="136" cy="110" r="3.4"/><circle cx="145" cy="104" r="3.4"/></g>
+  <circle cx="99" cy="94" r="6" fill="#fca5a5" opacity="0.6"/><circle cx="151" cy="94" r="6" fill="#fca5a5" opacity="0.6"/>
+  <!-- scarf -->
+  <rect x="140" y="126" width="22" height="50" rx="6" fill="#dc2626" stroke="#7f1d1d" stroke-width="2.5" transform="rotate(-10 151 126)"/>
+  <g fill="#16a34a" transform="rotate(-10 151 126)"><rect x="141.5" y="140" width="19" height="7"/><rect x="141.5" y="156" width="19" height="7"/></g>
+  <rect x="76" y="118" width="98" height="20" rx="10" fill="#dc2626" stroke="#7f1d1d" stroke-width="2.5"/>
+  <g fill="#16a34a"><rect x="94" y="119.5" width="9" height="17"/><rect x="120" y="119.5" width="9" height="17"/><rect x="146" y="119.5" width="9" height="17"/></g>
+  <!-- Santa hat -->
+  <path d="M90 50 Q96 8 148 8 Q178 10 190 34 Q170 22 160 50 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M104 30 Q120 16 146 16" stroke="#f87171" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="190" cy="37" r="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.5"/>
+  <rect x="82" y="42" width="86" height="19" rx="9.5" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.5"/>
+</svg>
