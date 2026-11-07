@@ -1,0 +1,59 @@
+# Builds the Angular app in ar_game/ and publishes it to GitHub Pages
+# at https://zyzythepizi.github.io/AR-Game-Engine/ on every push to main.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a running deploy is allowed to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ar_game
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ar_game/package-lock.json
+
+      - run: npm ci
+
+      # The site lives under /<repo name>/, so asset and script URLs need that base.
+      - run: npx ng build --base-href "/${{ github.event.repository.name }}/"
+
+      # Fallback page for unknown paths, plus no Jekyll processing.
+      - run: |
+          cp dist/ar_game/index.html dist/ar_game/404.html
+          touch dist/ar_game/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ar_game/dist/ar_game
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

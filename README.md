@@ -8,6 +8,10 @@ The project doubles as a lightweight promotional showcase for Kyndryl, themed ar
 
 The app uses [MediaPipe Pose Landmarker](https://developers.google.com/mediapipe) to detect the player's body position from the webcam feed in real time, directly in the browser (no app install, no native AR SDK). The tracked wrist/palm and shoulder positions are used as the player's "hitboxes" for gameplay — you play by physically moving your hands and arms in front of the camera.
 
+## Play online
+
+The latest `main` is published at **https://zyzythepizi.github.io/AR-Game-Engine/**. Open it, allow the camera, and play. Nothing needs to be installed or built. Every push to `main` rebuilds and redeploys the site through [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml), which takes about 2 minutes. Scores and settings are saved in each browser's local storage. The page needs internet, because the pose model loads from a CDN.
+
 ## Setup / Running the project
 
 **Requirements:**
